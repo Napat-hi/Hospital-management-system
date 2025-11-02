@@ -1,0 +1,58 @@
+{
+  "name": "po-react",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.5.2",
+    "@fortawesome/free-brands-svg-icons": "^6.5.2",
+    "@fortawesome/free-regular-svg-icons": "^6.5.2",
+    "@fortawesome/free-solid-svg-icons": "^6.5.2",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "bootstrap": "^5.3.3",
+    "file-saver": "^2.0.5",
+    "leaflet": "^1.9.4",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.3",
+    "react-dom": "^18.3.1",
+    "react-highlight-words": "^0.20.0",
+    "react-leaflet": "^4.2.1",
+    "react-router-dom": "^6.24.0",
+    "react-scripts": "5.0.1",
+    "styled-components": "^6.1.11",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "undeploy": "cf undeploy ext-hello-world --delete-services --delete-service-keys --delete-service-brokers",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.12",
+    "rimraf": "^5.0.5"
+  },
+  "homepage":"."
+}

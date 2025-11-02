@@ -1,0 +1,157 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "../App.css";
+import img1 from "../image/1.jpg";
+
+function App() {
+  const navigate = useNavigate();
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [photo, setPhoto] = useState("");
+
+  const [firstnames, setFirstNames] = useState("");
+  const [lastnames, setLastNames] = useState("");
+  const [listData, setListData] = useState([]);
+
+  const handleNavigate = (path, fn, ln, avatar = "") => {
+    setFirstNames(fn);
+    setLastNames(ln);
+    setPhoto(avatar);
+    navigate(path, {
+      state: {
+        firstnames: fn,
+        lastnames: ln,
+        listdata: listData,
+        photo: avatar,
+      },
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage("");
+
+    if (!username || !password) {
+      setMessage("Please fill out the form");
+      return;
+    }
+
+    if (username === "admin" && password === "admin") {
+      handleNavigate("/Adminpage", "Admin", "User", "");
+      return;
+    }
+    if (username === "Doctor" && password === "Doctor") {
+      handleNavigate("/Doctorpage", "Doctor", "User", "");
+      return;
+    }
+    if (username === "Staff" && password === "Staff") {
+      handleNavigate("/Staffpage", "Staff", "User", "");
+      return;
+    }
+
+    try {
+      const res = await fetch("https://reqres.in/api/users");
+      const json = await res.json();
+      const users = json?.data ?? [];
+      setListData(users);
+
+      const match = users.find(
+        (u) => u.first_name === username && u.last_name === password
+      );
+
+      if (!match) {
+        setMessage("User or Password is incorrect");
+        return;
+      }
+
+      handleNavigate(
+        "/Aboutpage",
+        match.first_name,
+        match.last_name,
+        match.avatar
+      );
+    } catch (err) {
+      console.error(err);
+      setMessage("Network error. Please try again.");
+    }
+  };
+
+  return (
+    <div className="container-fluid p-0 vh-100">
+      <div className="row g-0 h-100">
+        {/* ฝั่งซ้าย (รูปเต็มจอ) */}
+        <div className="col-md-6 d-none d-md-block p-0">
+          <img
+            src={photo || img1}
+            alt="Hospital"
+            className="w-100 h-100"
+            style={{ objectFit: "cover" }}
+          />
+        </div>
+
+        {/* ฝั่งขวา (login เต็มกรอบ) */}
+        <div className="col-md-6 d-flex align-items-center justify-content-center login-bg">
+          <div
+            className="login-box text-center text-dark p-5 rounded shadow-lg"
+            style={{
+              background: "rgba(255,255,255,0.95)",
+              width: "80%",
+              maxWidth: "480px",
+            }}
+          >
+            <h2 className="fw-bold mb-3">🏥 Hospital Management System</h2>
+            <p className="text-muted mb-4">Group 9</p>
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-floating mb-3">
+                <input
+                  type="text"
+                  id="username"
+                  className="form-control rounded-pill shadow-sm"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+                <label htmlFor="username">Username (or first_name)</label>
+              </div>
+
+              <div className="form-floating mb-3">
+                <input
+                  type="password"
+                  id="password"
+                  className="form-control rounded-pill shadow-sm"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <label htmlFor="password">Password (or last_name)</label>
+              </div>
+
+              {message && (
+                <div className="alert alert-danger py-2">{message}</div>
+              )}
+
+              <button
+                type="submit"
+                className="btn btn-primary w-100 py-2 rounded-pill shadow-sm fw-bold"
+              >
+                LOGIN
+              </button>
+            </form>
+
+            <p className="text-muted mt-4 mb-0">
+              Code by <a href="#" className="text-decoration-none">Po</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;

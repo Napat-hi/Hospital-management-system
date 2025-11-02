@@ -1,0 +1,10 @@
+_schema-version: "3.2"
+ID: po-react2
+version: 0.0.2
+provider: SAP
+modules:
+- name: po-react
+  type: single-page-app
+  path: build
+parameters:
+  deploy_mode: b1-webclient 
