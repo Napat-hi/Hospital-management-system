@@ -1,6 +1,44 @@
 // Adminpage.jsx
-
 // Purin's Page
+
+/*
+ * BACKEND INTEGRATION GUIDE
+ * =========================
+ * 
+ * This file is ready for backend database integration. Here's what you need to connect:
+ * 
+ * 1. API ENDPOINTS TO IMPLEMENT:
+ *    - POST   /api/users              - Create new user (handleCreateUser)
+ *    - GET    /api/users              - Fetch all users (replace dummyUsers)
+ *    - PUT    /api/users/:id          - Update user by ID (handleUpdateUser)
+ *    - DELETE /api/users/:id          - Delete/disable user by ID (handleDisableUser)
+ * 
+ * 2. EXPECTED DATA STRUCTURE:
+ *    User Object: {
+ *      id: number,
+ *      first_name: string,
+ *      last_name: string,
+ *      email: string,
+ *      phone: string,
+ *      role: "Doctor" | "Staff",
+ *      department: string,
+ *      specialization: string (for Doctors),
+ *      position: string (for Staff)
+ *    }
+ * 
+ * 3. TODO ITEMS:
+ *    - Replace dummy data (dummyUsers array) with API call to fetch real users
+ *    - Update all 'http://your-backend-url/api/users' endpoints with actual backend URL
+ *    - Add authentication token to API requests if required
+ *    - Implement proper error handling and loading states
+ *    - Add search functionality to filter users on backend
+ *    - Consider pagination for large user lists
+ * 
+ * 4. FUNCTIONS READY FOR BACKEND:
+ *    - handleCreateUser()   → POST new user
+ *    - handleUpdateUser()   → PUT update existing user
+ *    - handleDisableUser()  → DELETE/disable user
+ */
 
 import React, { useMemo, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -16,22 +54,64 @@ export default function Adminpage() {
   const state = (location && location.state) || {};
   const f_name = state.firstnames || "Admin";
   const l_name = state.lastnames || "User";
-  const photo  = state.photo || "";
-  const listData = Array.isArray(state.listdata) ? state.listdata : [];
+  const photo = state.photo || "";
+
+  // Dummy data for testing
+  const dummyUsers = [
+    { id: 1, first_name: "John", last_name: "Doe", email: "john.doe@hospital.com", role: "Doctor", department: "Cardiology" },
+    { id: 2, first_name: "Jane", last_name: "Smith", email: "jane.smith@hospital.com", role: "Doctor", department: "Pediatrics" },
+    { id: 3, first_name: "Michael", last_name: "Johnson", email: "michael.j@hospital.com", role: "Staff", position: "Nurse" },
+    { id: 4, first_name: "Emily", last_name: "Davis", email: "emily.davis@hospital.com", role: "Doctor", department: "Emergency Medicine" },
+    { id: 5, first_name: "Robert", last_name: "Wilson", email: "robert.w@hospital.com", role: "Staff", position: "Pharmacist" },
+    { id: 6, first_name: "Sarah", last_name: "Brown", email: "sarah.brown@hospital.com", role: "Doctor", department: "General Surgery" },
+    { id: 7, first_name: "David", last_name: "Martinez", email: "david.m@hospital.com", role: "Staff", position: "Laboratory Technician" },
+    { id: 8, first_name: "Lisa", last_name: "Anderson", email: "lisa.anderson@hospital.com", role: "Doctor", department: "Neurology" },
+    { id: 9, first_name: "James", last_name: "Taylor", email: "james.taylor@hospital.com", role: "Staff", position: "Medical Assistant" },
+    { id: 10, first_name: "Maria", last_name: "Garcia", email: "maria.garcia@hospital.com", role: "Doctor", department: "Obstetrics & Gynecology" },
+  ];
+
+  const listData = Array.isArray(state.listdata) && state.listdata.length > 0
+    ? state.listdata
+    : dummyUsers;
 
   // ---- UI state ----
   const [view, setView] = useState("create"); // 'create' | 'add' | 'delete' | 'edit' | 'table'
   const [sortKey, setSortKey] = useState("first_name");
   const [sortDir, setSortDir] = useState("asc");
   const [filterText, setFilterText] = useState("");
+  const [role, setRole] = useState(""); // Track selected role for Create user page
+  const [showDeleteResults, setShowDeleteResults] = useState(false);
+  const [showEditResults, setShowEditResults] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(""); // For edit functionality
+  const [selectedDeleteUserId, setSelectedDeleteUserId] = useState(""); // For delete functionality
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    fullName: "",
+    department: "",
+    specialization: "",
+    phone: "",
+    email: "",
+    position: "",
+    role: ""
+  });
+
+  // ---- Form data state ----
+  const [formData, setFormData] = useState({
+    fullName: "",
+    department: "",
+    specialization: "",
+    phone: "",
+    email: "",
+    position: ""
+  });
 
   // ---- เมนูซ้าย ----
   const menu = [
     { key: "create", label: "Create" },
-    { key: "add",    label: "Add" },
+    { key: "add", label: "Add" },
     { key: "delete", label: "Delete" },
-    { key: "edit",   label: "Edit" },
-    { key: "table",  label: "Users Table" },
+    { key: "edit", label: "Edit" },
+    { key: "table", label: "Users Table" },
   ];
 
   // ---- ตาราง users (เหมือนหน้าอื่น) ----
@@ -40,9 +120,9 @@ export default function Adminpage() {
     const ft = filterText.trim().toLowerCase();
     const visible = ft
       ? copy.filter(u =>
-          ["first_name", "last_name", "email"]
-            .some(k => String(u[k] || "").toLowerCase().includes(ft))
-        )
+        ["first_name", "last_name", "email"]
+          .some(k => String(u[k] || "").toLowerCase().includes(ft))
+      )
       : copy;
 
     const dir = sortDir === "asc" ? 1 : -1;
@@ -65,6 +145,195 @@ export default function Adminpage() {
     navigate("/"); // กลับหน้า login/หน้าแรก
   };
 
+  // ---- Handle form input changes ----
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // ---- Handle form submission ----
+  // TODO: Replace with actual backend endpoint
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+
+    // Prepare data to send to backend
+    // Expected format: { role, fullName, department, specialization/position, phone, email }
+    const userData = {
+      role: role,
+      ...formData
+    };
+
+    console.log("Sending data to backend:", userData);
+
+    try {
+      // TODO: Replace 'http://your-backend-url/api/users' with actual API endpoint
+      const response = await fetch('http://your-backend-url/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert('User created successfully!');
+        console.log('Server response:', result);
+
+        // Reset form after successful creation
+        setFormData({
+          fullName: "",
+          department: "",
+          specialization: "",
+          phone: "",
+          email: "",
+          position: ""
+        });
+        setRole("");
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to create user: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error connecting to server:', error);
+      alert('Error connecting to server. Please try again later.');
+    }
+  };
+
+  // ---- Handle search button clicks ----
+  const handleDeleteSearch = () => {
+    // TODO: Optionally filter results based on search input before displaying
+    setShowDeleteResults(true);
+  };
+
+  const handleEditSearch = () => {
+    // TODO: Optionally filter results based on search input before displaying
+    setShowEditResults(true);
+  };
+
+  // ---- Handle disable/delete user ----
+  // TODO: Replace with actual backend endpoint
+  const handleDisableUser = async (userId) => {
+    if (!userId) {
+      alert("Please select a user to disable");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to disable this user?")) {
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual API endpoint - use DELETE or PATCH method
+      const response = await fetch(`http://your-backend-url/api/users/${userId}`, {
+        method: 'DELETE', // or 'PATCH' with { status: 'disabled' }
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        alert("User disabled successfully!");
+        // Reset state
+        setShowDeleteResults(false);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to disable user: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error disabling user:', error);
+      alert('Error connecting to server. Please try again later.');
+    }
+  };
+
+  // ---- Handle edit user selection and form display ----
+  const handleEditUserClick = () => {
+    if (!selectedUserId) {
+      alert("Please select a user to edit");
+      return;
+    }
+
+    // Find the selected user
+    const user = listData.find(u => u.id === parseInt(selectedUserId));
+    if (user) {
+      // Populate edit form with user data
+      setEditFormData({
+        fullName: `${user.first_name} ${user.last_name}`,
+        department: user.department || "",
+        specialization: user.specialization || user.department || "",
+        phone: user.phone || "",
+        email: user.email || "",
+        position: user.position || "",
+        role: user.role || ""
+      });
+      setShowEditForm(true);
+    }
+  };
+
+  // ---- Handle edit form input changes ----
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // ---- Handle edit form submission ----
+  // TODO: Replace with actual backend endpoint
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    
+    // Prepare updated data for backend
+    // Expected format: { id, role, fullName, department, specialization/position, phone, email }
+    const updatedData = {
+      id: selectedUserId,
+      ...editFormData
+    };
+
+    console.log("Updating user:", updatedData);
+
+    try {
+      // TODO: Replace with actual API endpoint - use PUT or PATCH method
+      const response = await fetch(`http://your-backend-url/api/users/${selectedUserId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert("User updated successfully!");
+        console.log('Server response:', result);
+
+        // Reset form state after successful update
+        setShowEditForm(false);
+        setShowEditResults(false);
+        setSelectedUserId("");
+        setEditFormData({
+          fullName: "",
+          department: "",
+          specialization: "",
+          phone: "",
+          email: "",
+          position: "",
+          role: ""
+        });
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update user: ${errorData.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      alert('Error connecting to server. Please try again later.');
+    }
+  };
+
   return (
     <div className="doctor-layout">
       {/* Topbar */}
@@ -75,7 +344,7 @@ export default function Adminpage() {
               className="brand-icon"
               src="/images/hospital.png"
               alt=""
-              onError={(e)=>{e.currentTarget.style.display="none";}}
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
             />
             <h1 className="h5 m-0 fw-semibold">Hospital Management System</h1>
           </div>
@@ -141,101 +410,431 @@ export default function Adminpage() {
             {view === "create" && (
               <div className="card shadow-sm">
                 <div className="card-body">
-                  <h5 className="card-title mb-3">Create</h5>
+                  <h5 className="card-title mb-3">Create Users</h5>
                   <p className="text-muted mb-3">
-                    
+                    Fill in the details about creating new users Doctors/Staff.
                   </p>
                   <form className="row gy-2 gx-2">
-                    <div className="col-md-4">
-                      <label className="form-label">Name</label>
-                      <input type="text" className="form-control" placeholder="e.g. New Item" />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Type</label>
-                      <select className="form-select">
-                        <option>User</option>
-                        <option>Role</option>
-                        <option>Department</option>
+                    <div className="col-md-12">
+                      <label className="form-label">Role</label>
+                      <select
+                        className="form-select"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      >
+                        <option value="">Select Role</option>
+                        <option value="Doctor">Doctor</option>
+                        <option value="Staff">Staff</option>
                       </select>
                     </div>
-                    <div className="col-md-4 d-flex align-items-end">
-                      <button type="button" className="btn btn-primary w-100">Create</button>
-                    </div>
+
+                    {/* Form Fields - Doctor or Staff */}
+                    {(role === 'Doctor' || role === 'Staff') && (
+                      <>
+                        <div className="row">
+                          <div className="col-md-4">
+                            <label className="form-label mt-4">Full Name</label>
+                            <input
+                              type="text"
+                              name="fullName"
+                              className="form-control"
+                              placeholder="e.g. John Doe"
+                              value={formData.fullName}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label mt-4">Department</label>
+                            <select
+                              name="department"
+                              className="form-select"
+                              value={formData.department}
+                              onChange={handleInputChange}
+                            >
+                              <option value="">Select Department</option>
+                              <option value="General Medicine">General Medicine</option>
+                              <option value="General Surgery">General Surgery</option>
+                              <option value="Pediatrics">Pediatrics</option>
+                              <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                              <option value="Emergency Medicine">Emergency Medicine</option>
+                            </select>
+                          </div>
+                          <div className="col-4">
+                            {/* Conditional field: Specialization for Doctor, Position for Staff */}
+                            {role === 'Doctor' ? (
+                              <>
+                                <label className="form-label mt-4">Specialization</label>
+                                <select
+                                  name="specialization"
+                                  className="form-select"
+                                  value={formData.specialization || ""}
+                                  onChange={handleInputChange}
+                                >
+                                  <option value="">Select Specialization</option>
+                                  <option value="Cardiology">Cardiology</option>
+                                  <option value="Neurology">Neurology</option>
+                                  <option value="Orthopedics">Orthopedics</option>
+                                  <option value="Pediatrics">Pediatrics</option>
+                                  <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                                </select>
+                              </>
+                            ) : (
+                              <>
+                                <label className="form-label mt-4">Position</label>
+                                <select
+                                  name="position"
+                                  className="form-select"
+                                  value={formData.position || ""}
+                                  onChange={handleInputChange}
+                                >
+                                  <option value="">Select Position</option>
+                                  <option value="Nurse">Nurse</option>
+                                  <option value="Pharmacist">Pharmacist</option>
+                                  <option value="Medical Assistant">Medical Assistant</option>
+                                  <option value="Laboratory Technician">Laboratory Technician</option>
+                                  <option value="Radiologic Technologist">Radiologic Technologist</option>
+                                  <option value="Nurse Practitioner">Nurse Practitioner</option>
+                                  <option value="Physician Assistant">Physician Assistant</option>
+                                  <option value="Therapist">Therapist</option>
+                                  <option value="Paramedic">Paramedic</option>
+                                  <option value="Hospital Administrator">Hospital Administrator</option>
+                                </select>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="row">
+                          <div className="col-6">
+                            <label className="form-label mt-2">Phone Number</label>
+                            <input
+                              type="text"
+                              name="phone"
+                              className="form-control"
+                              placeholder="e.g. 123-456-7890"
+                              value={formData.phone || ""}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                          <div className="col-6">
+                            <label className="form-label mt-2">Email Address</label>
+                            <input
+                              type="email"
+                              name="email"
+                              className="form-control"
+                              placeholder="e.g. johndoe@example.com"
+                              value={formData.email || ""}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Create Button */}
+                    {(role === 'Doctor' || role === 'Staff') && (
+                      <>
+                        <div className="row mt-4">
+                          <div className="col-2"></div>
+                          <div className="col-8">
+                            <button
+                              type="submit"
+                              className="btn btn-primary w-100"
+                              onClick={handleCreateUser}
+                            >
+                              Create
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </form>
                 </div>
               </div>
             )}
 
+            {/* TODO delete Add page */}
             {view === "add" && (
-              <div className="card shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title mb-3">Add</h5>
-                  <p className="text-muted mb-3">
-                    
-                  </p>
-                  <form className="row gy-2 gx-2">
-                    <div className="col-md-6">
-                      <label className="form-label">Target</label>
-                      <input type="text" className="form-control" placeholder="Search target..." />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">Action</label>
-                      <select className="form-select">
-                        <option>Add Permission</option>
-                        <option>Add Member</option>
-                        <option>Attach Role</option>
-                      </select>
-                    </div>
-                    <div className="col-md-2 d-flex align-items-end">
-                      <button type="button" className="btn btn-success w-100">Add</button>
-                    </div>
-                  </form>
-                </div>
-              </div>
+              <>
+                unused, to be deleted
+              </>
             )}
 
+            {/* TODO rename to Disable */}
             {view === "delete" && (
-              <div className="card shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title mb-3">Delete</h5>
-                  <p className="text-muted mb-3">
-                    
-                  </p>
-                  <form className="row gy-2 gx-2">
-                    <div className="col-md-8">
-                      <label className="form-label">Select Item</label>
-                      <input type="text" className="form-control" placeholder="Search item to delete..." />
-                    </div>
-                    <div className="col-md-4 d-flex align-items-end">
-                      <button type="button" className="btn btn-outline-danger w-100">Delete</button>
-                    </div>
-                  </form>
+              <>
+                <div className="card shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title mb-3">Disable User</h5>
+                    <p className="text-muted mb-3">
+
+                    </p>
+                    <form className="row gy-2 gx-2">
+                      <div className="col-md-8">
+                        <label className="form-label">Full name Search</label>
+                        <input type="text" className="form-control" placeholder="Search user to disable..." />
+                      </div>
+                      <div className="col-md-4 d-flex align-items-end">
+                        <button 
+                          type="button" 
+                          className="btn btn-outline-primary w-100"
+                          onClick={handleDeleteSearch}
+                        >
+                          Search
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </div>
+                
+                {/* Show results only after search */}
+                {showDeleteResults && (
+                  <div className="card shadow-sm mt-3">
+                    <div className="card-body">
+                      <h5 className="card-title mb-3">Search Results</h5>
+                      <form className="row gy-2 gx-2">
+                        <div className="col-md-8">
+                          <label className="form-label">Select User</label>
+                          <select 
+                            className="form-select"
+                            value={selectedDeleteUserId}
+                            onChange={(e) => setSelectedDeleteUserId(e.target.value)}
+                          >
+                            <option value="">Select a user to disable</option>
+                            {listData.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {user.first_name} {user.last_name} - {user.email} ({user.role})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-md-4 d-flex align-items-end">
+                          <button 
+                            type="button" 
+                            className="btn btn-danger w-100"
+                            onClick={() => handleDisableUser(selectedDeleteUserId)}
+                          >
+                            Disable
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {view === "edit" && (
-              <div className="card shadow-sm">
-                <div className="card-body">
-                  <h5 className="card-title mb-3">Edit</h5>
-                  <p className="text-muted mb-3">
-                    (แก้ไข resource — ตัวอย่างฟอร์มแก้ไขชื่อ/ประเภท)
-                  </p>
-                  <form className="row gy-2 gx-2">
-                    <div className="col-md-5">
-                      <label className="form-label">Item</label>
-                      <input type="text" className="form-control" placeholder="Search item..." />
-                    </div>
-                    <div className="col-md-4">
-                      <label className="form-label">New Name</label>
-                      <input type="text" className="form-control" placeholder="New name..." />
-                    </div>
-                    <div className="col-md-3 d-flex align-items-end">
-                      <button type="button" className="btn btn-warning w-100">Update</button>
-                    </div>
-                  </form>
+              <>
+                <div className="card shadow-sm">
+                  <div className="card-body">
+                    <h5 className="card-title mb-3">Edit User Data</h5>
+                    <p className="text-muted mb-3">
+
+                    </p>
+                    <form className="row gy-2 gx-2">
+                      <div className="col-md-8">
+                        <label className="form-label">Full name Search</label>
+                        <input type="text" className="form-control" placeholder="Search user to edit..." />
+                      </div>
+                      <div className="col-md-4 d-flex align-items-end">
+                        <button 
+                          type="button" 
+                          className="btn btn-outline-primary w-100"
+                          onClick={handleEditSearch}
+                        >
+                          Search
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </div>
+                
+                {/* Show results only after search */}
+                {showEditResults && !showEditForm && (
+                  <div className="card shadow-sm mt-3">
+                    <div className="card-body">
+                      <h5 className="card-title mb-3">Search Results</h5>
+                      <form className="row gy-2 gx-2">
+                        <div className="col-md-8">
+                          <label className="form-label">Select User</label>
+                          <select 
+                            className="form-select"
+                            value={selectedUserId}
+                            onChange={(e) => setSelectedUserId(e.target.value)}
+                          >
+                            <option value="">Select a user to edit</option>
+                            {listData.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {user.first_name} {user.last_name} - {user.email} ({user.role})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-md-4 d-flex align-items-end">
+                          <button 
+                            type="button" 
+                            className="btn btn-warning w-100"
+                            onClick={handleEditUserClick}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show edit form after selecting user */}
+                {showEditForm && (
+                  <div className="card shadow-sm mt-3">
+                    <div className="card-body">
+                      <h5 className="card-title mb-3">Edit User Information</h5>
+                      <p className="text-muted mb-3">
+                        Update the user details below.
+                      </p>
+                      <form className="row gy-2 gx-2">
+                        <div className="col-md-12">
+                          <label className="form-label">Role</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            value={editFormData.role}
+                            disabled
+                          />
+                        </div>
+
+                        {/* Form Fields */}
+                        <>
+                          <div className="row">
+                            <div className="col-md-4">
+                              <label className="form-label mt-4">Full Name</label>
+                              <input
+                                type="text"
+                                name="fullName"
+                                className="form-control"
+                                placeholder="e.g. John Doe"
+                                value={editFormData.fullName}
+                                onChange={handleEditInputChange}
+                              />
+                            </div>
+                            <div className="col-md-4">
+                              <label className="form-label mt-4">Department</label>
+                              <select
+                                name="department"
+                                className="form-select"
+                                value={editFormData.department}
+                                onChange={handleEditInputChange}
+                              >
+                                <option value="">Select Department</option>
+                                <option value="General Medicine">General Medicine</option>
+                                <option value="General Surgery">General Surgery</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                                <option value="Emergency Medicine">Emergency Medicine</option>
+                              </select>
+                            </div>
+                            <div className="col-4">
+                              {/* Conditional field: Specialization for Doctor, Position for Staff */}
+                              {editFormData.role === 'Doctor' ? (
+                                <>
+                                  <label className="form-label mt-4">Specialization</label>
+                                  <select
+                                    name="specialization"
+                                    className="form-select"
+                                    value={editFormData.specialization || ""}
+                                    onChange={handleEditInputChange}
+                                  >
+                                    <option value="">Select Specialization</option>
+                                    <option value="Cardiology">Cardiology</option>
+                                    <option value="Neurology">Neurology</option>
+                                    <option value="Orthopedics">Orthopedics</option>
+                                    <option value="Pediatrics">Pediatrics</option>
+                                    <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                                  </select>
+                                </>
+                              ) : (
+                                <>
+                                  <label className="form-label mt-4">Position</label>
+                                  <select
+                                    name="position"
+                                    className="form-select"
+                                    value={editFormData.position || ""}
+                                    onChange={handleEditInputChange}
+                                  >
+                                    <option value="">Select Position</option>
+                                    <option value="Nurse">Nurse</option>
+                                    <option value="Pharmacist">Pharmacist</option>
+                                    <option value="Medical Assistant">Medical Assistant</option>
+                                    <option value="Laboratory Technician">Laboratory Technician</option>
+                                    <option value="Radiologic Technologist">Radiologic Technologist</option>
+                                    <option value="Nurse Practitioner">Nurse Practitioner</option>
+                                    <option value="Physician Assistant">Physician Assistant</option>
+                                    <option value="Therapist">Therapist</option>
+                                    <option value="Paramedic">Paramedic</option>
+                                    <option value="Hospital Administrator">Hospital Administrator</option>
+                                  </select>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-6">
+                              <label className="form-label mt-2">Phone Number</label>
+                              <input
+                                type="text"
+                                name="phone"
+                                className="form-control"
+                                placeholder="e.g. 123-456-7890"
+                                value={editFormData.phone || ""}
+                                onChange={handleEditInputChange}
+                              />
+                            </div>
+                            <div className="col-6">
+                              <label className="form-label mt-2">Email Address</label>
+                              <input
+                                type="email"
+                                name="email"
+                                className="form-control"
+                                placeholder="e.g. johndoe@example.com"
+                                value={editFormData.email || ""}
+                                onChange={handleEditInputChange}
+                              />
+                            </div>
+                          </div>
+                        </>
+
+                        {/* Update Button */}
+                        <div className="row mt-4">
+                          <div className="col-2"></div>
+                          <div className="col-4">
+                            <button
+                              type="button"
+                              className="btn btn-secondary w-100"
+                              onClick={() => {
+                                setShowEditForm(false);
+                                setShowEditResults(true);
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                          <div className="col-4">
+                            <button
+                              type="submit"
+                              className="btn btn-warning w-100"
+                              onClick={handleUpdateUser}
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {view === "table" && (
@@ -265,6 +864,12 @@ export default function Adminpage() {
                           <th role="button" onClick={() => toggleSort("email")}>
                             Email {sortKey === "email" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                           </th>
+                          <th role="button" onClick={() => toggleSort("role")}>
+                            Role {sortKey === "role" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                          </th>
+                          <th role="button" onClick={() => toggleSort("department")}>
+                            Department/Position {sortKey === "department" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -273,6 +878,8 @@ export default function Adminpage() {
                             <td>{u.first_name}</td>
                             <td>{u.last_name}</td>
                             <td>{u.email}</td>
+                            <td>{u.role}</td>
+                            <td>{u.role === 'Doctor' ? u.department : u.position}</td>
                           </tr>
                         ))}
                       </tbody>

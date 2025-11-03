@@ -4,7 +4,7 @@ import Home from './pages/Home';
 import About from './pages/Adminpage';
 import Doctor from './pages/Doctorpage';
 import Staff from './pages/Staffpage';
-import Contact from './pages/Contect';
+import Contact from './pages/Contact';
 // import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
