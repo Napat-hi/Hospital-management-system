@@ -68,10 +68,11 @@ The following functions are ready for backend:
 - Endpoint: `/api/users/:id`
 - Payload: `{ id, role, fullName, department, specialization/position, phone, email }`
 
-#### Delete User (`handleDisableUser`)
-- Location: Line ~182
-- Method: DELETE
-- Endpoint: `/api/users/:id`
+#### Disable User (`handleDisableUser`)
+- Location: Line ~218
+- Method: PATCH
+- Endpoint: `/api/users/:id/disable`
+- Payload: `{ status: 'disabled' }`
 
 ## Backend Requirements
 
@@ -146,11 +147,20 @@ Response: {
 }
 ```
 
-#### DELETE /api/users/:id
-Soft delete (disable) user
+#### PATCH /api/users/:id/disable
+Disable user (soft delete - does not remove from database)
 ```json
+Request: {
+  "status": "disabled"
+}
+
 Response: {
-  "message": "User disabled successfully"
+  "message": "User disabled successfully",
+  "user": {
+    "id": 1,
+    "status": "disabled",
+    ...
+  }
 }
 ```
 
@@ -166,21 +176,21 @@ localStorage.setItem('authToken', token);
 
 ## Error Handling
 All functions include try-catch blocks. Customize error messages in:
-- `handleCreateUser` (line ~138)
-- `handleUpdateUser` (line ~228)
-- `handleDisableUser` (line ~206)
+- `handleCreateUser` (line ~157)
+- `handleUpdateUser` (line ~286)
+- `handleDisableUser` (line ~218)
 
 ## Testing Checklist
 - [ ] Backend API endpoints are running
 - [ ] CORS is configured for frontend domain
-- [ ] Database tables are created
+- [ ] Database tables are created with `status` field
 - [ ] API returns expected data format
 - [ ] Error responses include `message` field
 - [ ] Authentication (if required) is working
-- [ ] Test CREATE operation
-- [ ] Test READ operation (fetch users)
-- [ ] Test UPDATE operation
-- [ ] Test DELETE operation
+- [ ] Test CREATE operation (POST /api/users)
+- [ ] Test READ operation (GET /api/users)
+- [ ] Test UPDATE operation (PUT /api/users/:id)
+- [ ] Test DISABLE operation (PATCH /api/users/:id/disable)
 
 ## Additional Features to Consider
 1. **Search functionality**: Filter users on backend before sending

@@ -11,7 +11,7 @@
  *    - POST   /api/users              - Create new user (handleCreateUser)
  *    - GET    /api/users              - Fetch all users (replace dummyUsers)
  *    - PUT    /api/users/:id          - Update user by ID (handleUpdateUser)
- *    - DELETE /api/users/:id          - Delete/disable user by ID (handleDisableUser)
+ *    - PATCH  /api/users/:id/disable  - Disable user by ID (handleDisableUser)
  * 
  * 2. EXPECTED DATA STRUCTURE:
  *    User Object: {
@@ -37,7 +37,7 @@
  * 4. FUNCTIONS READY FOR BACKEND:
  *    - handleCreateUser()   → POST new user
  *    - handleUpdateUser()   → PUT update existing user
- *    - handleDisableUser()  → DELETE/disable user
+ *    - handleDisableUser()  → PATCH disable user (soft delete)
  */
 
 import React, { useMemo, useState } from "react";
@@ -108,8 +108,7 @@ export default function Adminpage() {
   // ---- เมนูซ้าย ----
   const menu = [
     { key: "create", label: "Create" },
-    { key: "add", label: "Add" },
-    { key: "delete", label: "Delete" },
+    { key: "disable", label: "Disable" },
     { key: "edit", label: "Edit" },
     { key: "table", label: "Users Table" },
   ];
@@ -214,7 +213,7 @@ export default function Adminpage() {
     setShowEditResults(true);
   };
 
-  // ---- Handle disable/delete user ----
+  // ---- Handle disable user (soft delete) ----
   // TODO: Replace with actual backend endpoint
   const handleDisableUser = async (userId) => {
     if (!userId) {
@@ -227,12 +226,14 @@ export default function Adminpage() {
     }
 
     try {
-      // TODO: Replace with actual API endpoint - use DELETE or PATCH method
-      const response = await fetch(`http://your-backend-url/api/users/${userId}`, {
-        method: 'DELETE', // or 'PATCH' with { status: 'disabled' }
+      // TODO: Replace with actual API endpoint
+      // This is a PATCH request to disable (soft delete), NOT a DELETE request
+      const response = await fetch(`http://your-backend-url/api/users/${userId}/disable`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({ status: 'disabled' })
       });
 
       if (response.ok) {
@@ -553,15 +554,8 @@ export default function Adminpage() {
               </div>
             )}
 
-            {/* TODO delete Add page */}
-            {view === "add" && (
-              <>
-                unused, to be deleted
-              </>
-            )}
-
             {/* TODO rename to Disable */}
-            {view === "delete" && (
+            {view === "disable" && (
               <>
                 <div className="card shadow-sm">
                   <div className="card-body">
