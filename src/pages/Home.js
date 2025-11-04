@@ -39,7 +39,7 @@ function App() {
       return;
     }
 
-    if (username === "admin" && password === "admin") {
+    if (username === "Admin" && password === "Admin") {
       handleNavigate("/Adminpage", "Admin", "User", "");
       return;
     }
@@ -80,19 +80,20 @@ function App() {
   };
 
   return (
-    <div className="container-fluid p-0 vh-100">
-      <div className="row g-0 h-100">
-        {/* ฝั่งซ้าย (รูปเต็มจอ) */}
-        <div className="col-md-6 d-none d-md-block p-0">
+    // Use minHeight: '100dvh' to avoid ResizeObserver loops on mobile
+    <div className="container-fluid p-0" style={{ minHeight: "100dvh" }}>
+      <div className="row g-0 h-100" style={{ minHeight: "100%" }}>
+        {/* Left side (full-height image) */}
+        <div className="col-md-6 d-none d-md-block p-0" style={{ minHeight: "100%" }}>
           <img
             src={photo || img1}
             alt="Hospital"
             className="w-100 h-100"
-            style={{ objectFit: "cover" }}
+            style={{ objectFit: "cover", display: "block" }}
           />
         </div>
 
-        {/* ฝั่งขวา (login เต็มกรอบ) */}
+        {/* Right side (login) */}
         <div className="col-md-6 d-flex align-items-center justify-content-center login-bg">
           <div
             className="login-box text-center text-dark p-5 rounded shadow-lg"
@@ -145,7 +146,7 @@ function App() {
             </form>
 
             <p className="text-muted mt-4 mb-0">
-              Code by <a href="#" className="text-decoration-none">Po</a>
+              Code by <a href="#" className="text-decoration-none">Hospital</a>
             </p>
           </div>
         </div>
