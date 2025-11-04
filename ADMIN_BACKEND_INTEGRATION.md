@@ -1,6 +1,8 @@
+Title was here
+
 # Backend Integration Guide - Admin Page
 
-## Overview
+## Overviwwwwew
 The Admin page (`Adminpage.js`) is fully prepared for backend database integration. All CRUD operations have placeholder functions ready to connect to your API.
 
 ## Current State
