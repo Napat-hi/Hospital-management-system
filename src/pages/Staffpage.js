@@ -189,6 +189,7 @@ export default function Staffpage() {
   // Billing view states
   const [selectedBillingAppointmentId, setSelectedBillingAppointmentId] = useState("");
   const [generatedBill, setGeneratedBill] = useState(null);
+  const [generatedBills, setGeneratedBills] = useState([]);
   const [billFormData, setBillFormData] = useState({
     consultationFee: "",
     medicationCost: "",
@@ -731,10 +732,42 @@ export default function Staffpage() {
       // const data = await response.json();
 
       setGeneratedBill(bill);
+      setGeneratedBills(prev => [...prev, bill]);
       alert("Bill generated successfully!");
       
     } catch (error) {
       console.error('Error generating bill:', error);
+      alert('Error connecting to server. Please try again later.');
+    }
+  };
+
+  // ---- Handle delete bill ----
+  // TODO: Replace with actual backend endpoint
+  const handleDeleteBill = async (billId) => {
+    if (!window.confirm("Are you sure you want to delete this bill? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch(`http://your-backend-url/api/billing/${billId}`, {
+      //   method: 'DELETE'
+      // });
+      // if (!response.ok) {
+      //   throw new Error('Failed to delete bill');
+      // }
+
+      setGeneratedBills(prev => prev.filter(bill => bill.id !== billId));
+      
+      // If the deleted bill is the currently displayed one, clear it
+      if (generatedBill && generatedBill.id === billId) {
+        setGeneratedBill(null);
+      }
+      
+      alert("Bill deleted successfully!");
+      
+    } catch (error) {
+      console.error('Error deleting bill:', error);
       alert('Error connecting to server. Please try again later.');
     }
   };
@@ -1587,8 +1620,15 @@ export default function Staffpage() {
                 {/* Generated Bill Display */}
                 {generatedBill && (
                   <div className="card shadow-sm border-success">
-                    <div className="card-header bg-success text-white">
+                    <div className="card-header bg-success text-white d-flex justify-content-between align-items-center">
                       <h5 className="mb-0">Bill #{generatedBill.id}</h5>
+                      <button 
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDeleteBill(generatedBill.id)}
+                      >
+                        <i className="bi bi-trash me-1"></i>
+                        Delete Bill
+                      </button>
                     </div>
                     <div className="card-body">
                       <div className="row g-3">
@@ -1669,7 +1709,66 @@ export default function Staffpage() {
                   </div>
                 </div>
               </div>
-            )}                {dummyAppointments.filter(a => a.status === 'completed').length === 0 && (
+            )}
+
+                {/* All Generated Bills List */}
+                {generatedBills.length > 0 && (
+                  <div className="mt-4">
+                    <h5 className="mb-3">All Generated Bills</h5>
+                    <div className="row g-3">
+                      {generatedBills.map((bill) => (
+                        <div key={bill.id} className="col-md-6 col-lg-4">
+                          <div className="card shadow-sm h-100">
+                            <div className="card-header bg-light d-flex justify-content-between align-items-center">
+                              <h6 className="mb-0">Bill #{bill.id}</h6>
+                              <span className={`badge ${bill.status === 'paid' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                {bill.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="card-body">
+                              <div className="mb-2">
+                                <small className="text-muted">Patient</small>
+                                <div className="fw-semibold">{bill.patientName}</div>
+                              </div>
+                              <div className="mb-2">
+                                <small className="text-muted">Doctor</small>
+                                <div>{bill.doctorName}</div>
+                              </div>
+                              <div className="mb-2">
+                                <small className="text-muted">Date</small>
+                                <div>{bill.appointmentDate}</div>
+                              </div>
+                              <div className="mb-2">
+                                <small className="text-muted">Total Amount</small>
+                                <div className="fs-5 fw-bold text-success">${bill.totalAmount.toFixed(2)}</div>
+                              </div>
+                              <div className="mb-2">
+                                <small className="text-muted">Generated By</small>
+                                <div className="small">{bill.generatedBy}</div>
+                              </div>
+                            </div>
+                            <div className="card-footer bg-light d-flex justify-content-end gap-2">
+                              <button 
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => setGeneratedBill(bill)}
+                              >
+                                <i className="bi bi-eye me-1"></i>
+                                View
+                              </button>
+                              <button 
+                                className="btn btn-sm btn-outline-danger"
+                                onClick={() => handleDeleteBill(bill.id)}
+                              >
+                                <i className="bi bi-trash me-1"></i>
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}                {dummyAppointments.filter(a => a.status === 'completed').length === 0 && (
                   <div className="alert alert-warning">
                     No completed appointments available for billing.
                   </div>

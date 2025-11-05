@@ -18,6 +18,9 @@
  *      id: number,
  *      first_name: string,
  *      last_name: string,
+ *      username: string,        // Auto-generated: firstname.first3letters_of_lastname
+ *      password: string,        // Auto-generated: DDMMYYYY from date of birth
+ *      dob: string,            // Date of Birth in format "YYYY-MM-DD"
  *      email: string,
  *      phone: string,
  *      role: "Doctor" | "Staff",
@@ -26,15 +29,23 @@
  *      position: string (for Staff)
  *    }
  * 
- * 3. TODO ITEMS:
+ * 3. USERNAME & PASSWORD GENERATION:
+ *    - Username format: firstname.first3letters_of_lastname
+ *      Example: "John Doe" -> "john.doe"
+ *    - Password format: DDMMYYYY (from date of birth)
+ *      Example: DOB "2004-10-17" -> "17102004"
+ *    - Both are automatically generated when creating a user
+ * 
+ * 4. TODO ITEMS:
  *    - Replace dummy data (dummyUsers array) with API call to fetch real users
  *    - Update all 'http://your-backend-url/api/users' endpoints with actual backend URL
  *    - Add authentication token to API requests if required
  *    - Implement proper error handling and loading states
  *    - Add search functionality to filter users on backend
  *    - Consider pagination for large user lists
+ *    - Store hashed passwords in database (never store plain text!)
  * 
- * 4. FUNCTIONS READY FOR BACKEND:
+ * 5. FUNCTIONS READY FOR BACKEND:
  *    - handleCreateUser()   → POST new user
  *    - handleUpdateUser()   → PUT update existing user
  *    - handleDisableUser()  → PATCH disable user (soft delete)
@@ -92,7 +103,8 @@ export default function Adminpage() {
     phone: "",
     email: "",
     position: "",
-    role: ""
+    role: "",
+    dob: ""
   });
 
   // ---- Form data state ----
@@ -102,7 +114,8 @@ export default function Adminpage() {
     specialization: "",
     phone: "",
     email: "",
-    position: ""
+    position: "",
+    dob: ""
   });
 
   // ---- เมนูซ้าย ----
@@ -144,6 +157,33 @@ export default function Adminpage() {
     navigate("/"); // กลับหน้า login/หน้าแรก
   };
 
+  // ---- Generate username from first name and last name ----
+  // Format: firstname.first3letters_of_lastname
+  // Example: "John Doe" -> "john.doe"
+  const generateUsername = (fullName) => {
+    if (!fullName) return "";
+    
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length < 2) return fullName.toLowerCase().replace(/\s+/g, '');
+    
+    const firstName = parts[0].toLowerCase();
+    const lastName = parts[parts.length - 1].toLowerCase();
+    const lastNamePrefix = lastName.substring(0, 3);
+    
+    return `${firstName}.${lastNamePrefix}`;
+  };
+
+  // ---- Generate password from date of birth ----
+  // Format: DDMMYYYY
+  // Example: "2004-10-17" -> "17102004"
+  const generatePassword = (dob) => {
+    if (!dob) return "";
+    
+    // dob format is "YYYY-MM-DD" from date input
+    const [year, month, day] = dob.split('-');
+    return `${day}${month}${year}`;
+  };
+
   // ---- Handle form input changes ----
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -158,14 +198,27 @@ export default function Adminpage() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
 
+    // Validate required fields
+    if (!formData.fullName || !formData.dob) {
+      alert("Please fill in all required fields (Full Name and Date of Birth)");
+      return;
+    }
+
+    // Generate username and password
+    const username = generateUsername(formData.fullName);
+    const password = generatePassword(formData.dob);
+
     // Prepare data to send to backend
-    // Expected format: { role, fullName, department, specialization/position, phone, email }
+    // Expected format: { role, fullName, dob, username, password, department, specialization/position, phone, email }
     const userData = {
       role: role,
-      ...formData
+      ...formData,
+      username: username,
+      password: password
     };
 
     console.log("Sending data to backend:", userData);
+    console.log(`Generated credentials - Username: ${username}, Password: ${password}`);
 
     try {
       // TODO: Replace 'http://your-backend-url/api/users' with actual API endpoint
@@ -179,7 +232,7 @@ export default function Adminpage() {
 
       if (response.ok) {
         const result = await response.json();
-        alert('User created successfully!');
+        alert(`User created successfully!\n\nUsername: ${username}\nPassword: ${password}\n\nPlease save these credentials.`);
         console.log('Server response:', result);
 
         // Reset form after successful creation
@@ -189,7 +242,8 @@ export default function Adminpage() {
           specialization: "",
           phone: "",
           email: "",
-          position: ""
+          position: "",
+          dob: ""
         });
         setRole("");
       } else {
@@ -268,7 +322,8 @@ export default function Adminpage() {
         phone: user.phone || "",
         email: user.email || "",
         position: user.position || "",
-        role: user.role || ""
+        role: user.role || "",
+        dob: user.dob || ""
       });
       setShowEditForm(true);
     }
@@ -323,7 +378,8 @@ export default function Adminpage() {
           phone: "",
           email: "",
           position: "",
-          role: ""
+          role: "",
+          dob: ""
         });
       } else {
         const errorData = await response.json();
@@ -506,7 +562,19 @@ export default function Adminpage() {
                         </div>
 
                         <div className="row">
-                          <div className="col-6">
+                          <div className="col-4">
+                            <label className="form-label mt-2">Date of Birth <span className="text-danger">*</span></label>
+                            <input
+                              type="date"
+                              name="dob"
+                              className="form-control"
+                              value={formData.dob || ""}
+                              onChange={handleInputChange}
+                              required
+                            />
+                            <small className="text-muted">Used to generate login password</small>
+                          </div>
+                          <div className="col-4">
                             <label className="form-label mt-2">Phone Number</label>
                             <input
                               type="text"
@@ -517,7 +585,7 @@ export default function Adminpage() {
                               onChange={handleInputChange}
                             />
                           </div>
-                          <div className="col-6">
+                          <div className="col-4">
                             <label className="form-label mt-2">Email Address</label>
                             <input
                               type="email"
@@ -774,7 +842,17 @@ export default function Adminpage() {
                           </div>
 
                           <div className="row">
-                            <div className="col-6">
+                            <div className="col-4">
+                              <label className="form-label mt-2">Date of Birth</label>
+                              <input
+                                type="date"
+                                name="dob"
+                                className="form-control"
+                                value={editFormData.dob || ""}
+                                onChange={handleEditInputChange}
+                              />
+                            </div>
+                            <div className="col-4">
                               <label className="form-label mt-2">Phone Number</label>
                               <input
                                 type="text"
@@ -785,7 +863,7 @@ export default function Adminpage() {
                                 onChange={handleEditInputChange}
                               />
                             </div>
-                            <div className="col-6">
+                            <div className="col-4">
                               <label className="form-label mt-2">Email Address</label>
                               <input
                                 type="email"
