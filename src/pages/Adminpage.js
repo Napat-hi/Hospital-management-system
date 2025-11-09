@@ -40,7 +40,7 @@
  *    - handleDisableUser()  → PATCH disable user (soft delete)
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -56,23 +56,27 @@ export default function Adminpage() {
   const l_name = state.lastnames || "User";
   const photo = state.photo || "";
 
-  // Dummy data for testing
-  const dummyUsers = [
-    { id: 1, first_name: "John", last_name: "Doe", email: "john.doe@hospital.com", role: "Doctor", department: "Cardiology" },
-    { id: 2, first_name: "Jane", last_name: "Smith", email: "jane.smith@hospital.com", role: "Doctor", department: "Pediatrics" },
-    { id: 3, first_name: "Michael", last_name: "Johnson", email: "michael.j@hospital.com", role: "Staff", position: "Nurse" },
-    { id: 4, first_name: "Emily", last_name: "Davis", email: "emily.davis@hospital.com", role: "Doctor", department: "Emergency Medicine" },
-    { id: 5, first_name: "Robert", last_name: "Wilson", email: "robert.w@hospital.com", role: "Staff", position: "Pharmacist" },
-    { id: 6, first_name: "Sarah", last_name: "Brown", email: "sarah.brown@hospital.com", role: "Doctor", department: "General Surgery" },
-    { id: 7, first_name: "David", last_name: "Martinez", email: "david.m@hospital.com", role: "Staff", position: "Laboratory Technician" },
-    { id: 8, first_name: "Lisa", last_name: "Anderson", email: "lisa.anderson@hospital.com", role: "Doctor", department: "Neurology" },
-    { id: 9, first_name: "James", last_name: "Taylor", email: "james.taylor@hospital.com", role: "Staff", position: "Medical Assistant" },
-    { id: 10, first_name: "Maria", last_name: "Garcia", email: "maria.garcia@hospital.com", role: "Doctor", department: "Obstetrics & Gynecology" },
-  ];
+const [listData, setListData] = useState([]);
 
-  const listData = Array.isArray(state.listdata) && state.listdata.length > 0
-    ? state.listdata
-    : dummyUsers;
+const fetchUsers = async () => {
+  try {
+    const response = await fetch('http://localhost:5000/api/users');
+    if (response.ok) {
+      const users = await response.json();
+      setListData(users);
+    } else {
+      console.error('Failed to fetch users');
+    }
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+};
+
+useEffect(() => {
+  fetchUsers();
+}, []);
+
+
 
   // ---- UI state ----
   const [view, setView] = useState("create"); // 'create' | 'add' | 'delete' | 'edit' | 'table'
@@ -86,7 +90,8 @@ export default function Adminpage() {
   const [selectedDeleteUserId, setSelectedDeleteUserId] = useState(""); // For delete functionality
   const [showEditForm, setShowEditForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     department: "",
     specialization: "",
     phone: "",
@@ -97,7 +102,8 @@ export default function Adminpage() {
 
   // ---- Form data state ----
   const [formData, setFormData] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     department: "",
     specialization: "",
     phone: "",
@@ -133,7 +139,7 @@ export default function Adminpage() {
     return visible;
   }, [listData, filterText, sortKey, sortDir]);
 
-  const cameWithState = f_name || l_name || photo || listData.length > 0;
+  const cameWithState = listData.length > 0;
 
   const toggleSort = (key) => {
     if (key === sortKey) setSortDir(d => (d === "asc" ? "desc" : "asc"));
@@ -161,15 +167,22 @@ export default function Adminpage() {
     // Prepare data to send to backend
     // Expected format: { role, fullName, department, specialization/position, phone, email }
     const userData = {
-      role: role,
-      ...formData
+      role,
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      department: formData.department,
+      specialization: formData.specialization,
+      position: formData.position,
+      phone: formData.phone,
+      email: formData.email
     };
+
 
     console.log("Sending data to backend:", userData);
 
     try {
       // TODO: Replace 'http://your-backend-url/api/users' with actual API endpoint
-      const response = await fetch('http://your-backend-url/api/users', {
+      const response = await fetch('http://localhost:5000/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,17 +193,19 @@ export default function Adminpage() {
       if (response.ok) {
         const result = await response.json();
         alert('User created successfully!');
+        await fetchUsers();
         console.log('Server response:', result);
 
         // Reset form after successful creation
-        setFormData({
-          fullName: "",
-          department: "",
-          specialization: "",
-          phone: "",
-          email: "",
-          position: ""
-        });
+      setFormData({
+        first_name: "",
+        last_name: "",
+        department: "",
+        specialization: "",
+        phone: "",
+        email: "",
+        position: ""
+      });
         setRole("");
       } else {
         const errorData = await response.json();
@@ -228,7 +243,7 @@ export default function Adminpage() {
     try {
       // TODO: Replace with actual API endpoint
       // This is a PATCH request to disable (soft delete), NOT a DELETE request
-      const response = await fetch(`http://your-backend-url/api/users/${userId}/disable`, {
+      const response = await fetch(`http://localhost:5000/api/users/${userId}/disable`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -238,6 +253,7 @@ export default function Adminpage() {
 
       if (response.ok) {
         alert("User disabled successfully!");
+        await fetchUsers();
         // Reset state
         setShowDeleteResults(false);
       } else {
@@ -262,7 +278,8 @@ export default function Adminpage() {
     if (user) {
       // Populate edit form with user data
       setEditFormData({
-        fullName: `${user.first_name} ${user.last_name}`,
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
         department: user.department || "",
         specialization: user.specialization || user.department || "",
         phone: user.phone || "",
@@ -299,7 +316,7 @@ export default function Adminpage() {
 
     try {
       // TODO: Replace with actual API endpoint - use PUT or PATCH method
-      const response = await fetch(`http://your-backend-url/api/users/${selectedUserId}`, {
+      const response = await fetch(`http://localhost:5000/api/users/${selectedUserId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -310,6 +327,7 @@ export default function Adminpage() {
       if (response.ok) {
         const result = await response.json();
         alert("User updated successfully!");
+        await fetchUsers();
         console.log('Server response:', result);
 
         // Reset form state after successful update
@@ -317,7 +335,8 @@ export default function Adminpage() {
         setShowEditResults(false);
         setSelectedUserId("");
         setEditFormData({
-          fullName: "",
+          first_name: "",
+          last_name: "",
           department: "",
           specialization: "",
           phone: "",
@@ -428,19 +447,29 @@ export default function Adminpage() {
                         <option value="Staff">Staff</option>
                       </select>
                     </div>
-
                     {/* Form Fields - Doctor or Staff */}
                     {(role === 'Doctor' || role === 'Staff') && (
                       <>
                         <div className="row">
                           <div className="col-md-4">
-                            <label className="form-label mt-4">Full Name</label>
+                            <label className="form-label mt-4">First Name</label>
                             <input
                               type="text"
-                              name="fullName"
+                              name="first_name"
                               className="form-control"
-                              placeholder="e.g. John Doe"
-                              value={formData.fullName}
+                              placeholder="e.g. John"
+                              value={formData.first_name}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label mt-4">Last Name</label>
+                            <input
+                              type="text"
+                              name="last_name"
+                              className="form-control"
+                              placeholder="e.g. Doe"
+                              value={formData.last_name}
                               onChange={handleInputChange}
                             />
                           </div>
@@ -504,7 +533,6 @@ export default function Adminpage() {
                             )}
                           </div>
                         </div>
-
                         <div className="row">
                           <div className="col-6">
                             <label className="form-label mt-2">Phone Number</label>
@@ -702,14 +730,25 @@ export default function Adminpage() {
                         <>
                           <div className="row">
                             <div className="col-md-4">
-                              <label className="form-label mt-4">Full Name</label>
+                              <label className="form-label mt-4">First Name</label>
                               <input
                                 type="text"
-                                name="fullName"
+                                name="first_name"
                                 className="form-control"
-                                placeholder="e.g. John Doe"
-                                value={editFormData.fullName}
-                                onChange={handleEditInputChange}
+                                placeholder="e.g. John"
+                                value={formData.first_name}
+                                onChange={handleInputChange}
+                              />
+                            </div>
+                            <div className="col-md-4">
+                              <label className="form-label mt-4">Last Name</label>
+                              <input
+                                type="text"
+                                name="last_name"
+                                className="form-control"
+                                placeholder="e.g. Doe"
+                                value={formData.last_name}
+                                onChange={handleInputChange}
                               />
                             </div>
                             <div className="col-md-4">
