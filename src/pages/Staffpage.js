@@ -1749,13 +1749,6 @@ export default function Staffpage() {
                             </div>
                             <div className="card-footer bg-light d-flex justify-content-end gap-2">
                               <button 
-                                className="btn btn-sm btn-outline-primary"
-                                onClick={() => setGeneratedBill(bill)}
-                              >
-                                <i className="bi bi-eye me-1"></i>
-                                View
-                              </button>
-                              <button 
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => handleDeleteBill(bill.id)}
                               >
