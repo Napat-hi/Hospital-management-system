@@ -78,6 +78,7 @@ export default function Doctorpage() {
   const [showPatientResults, setShowPatientResults] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientSearchText, setPatientSearchText] = useState("");
   
   // ---- Backend data state ----
   const [patients, setPatients] = useState([]);
@@ -158,6 +159,18 @@ export default function Doctorpage() {
 
   // Data is now loaded from backend (see useEffect above)
   // No more dummy data needed!
+
+  // ---- Filtered patients based on search ----
+  const filteredPatients = useMemo(() => {
+    if (!patientSearchText.trim()) return patients;
+    
+    const searchLower = patientSearchText.toLowerCase();
+    return patients.filter(patient => 
+      patient.first_name?.toLowerCase().includes(searchLower) ||
+      patient.last_name?.toLowerCase().includes(searchLower) ||
+      `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchLower)
+    );
+  }, [patients, patientSearchText]);
 
   // ---- Handle patient search ----
   // TODO: Replace with actual backend search/filter
@@ -375,7 +388,13 @@ export default function Doctorpage() {
                     <form className="row gy-2 gx-2">
                       <div className="col-md-8">
                         <label className="form-label">Patient Name Search</label>
-                        <input type="text" className="form-control" placeholder="Search patient by name..." />
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Search patient by name..." 
+                          value={patientSearchText}
+                          onChange={(e) => setPatientSearchText(e.target.value)}
+                        />
                       </div>
                       <div className="col-md-4 d-flex align-items-end">
                         <button 
@@ -393,7 +412,10 @@ export default function Doctorpage() {
                 {showPatientResults && !selectedPatient && (
                   <div className="card shadow-sm mt-3">
                     <div className="card-body">
-                      <h5 className="card-title mb-3">Search Results</h5>
+                      <h5 className="card-title mb-3">
+                        Search Results 
+                        <span className="badge bg-info ms-2">{filteredPatients.length} found</span>
+                      </h5>
                       <form className="row gy-2 gx-2">
                         <div className="col-md-8">
                           <label className="form-label">Select Patient</label>
@@ -403,7 +425,7 @@ export default function Doctorpage() {
                             onChange={(e) => setSelectedPatientId(e.target.value)}
                           >
                             <option value="">Select a patient to view</option>
-                            {patients.map((patient) => (
+                            {filteredPatients.map((patient) => (
                               <option key={patient.id} value={patient.id}>
                                 {patient.first_name} {patient.last_name} - DOB: {patient.dob}
                               </option>
