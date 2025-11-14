@@ -11,6 +11,7 @@ function App() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [photo, setPhoto] = useState("");
+  const [errors, setErrors] = useState({ username: "", password: "" });
 
   const [firstnames, setFirstNames] = useState("");
   const [lastnames, setLastNames] = useState("");
@@ -30,12 +31,38 @@ function App() {
     });
   };
 
+  const validateForm = () => {
+    const newErrors = { username: "", password: "" };
+    let isValid = true;
+
+    // Username validation
+    if (!username.trim()) {
+      newErrors.username = "Username is required";
+      isValid = false;
+    } else if (username.trim().length < 2) {
+      newErrors.username = "Username must be at least 2 characters";
+      isValid = false;
+    }
+
+    // Password validation
+    if (!password) {
+      newErrors.password = "Password is required";
+      isValid = false;
+    } else if (password.length < 3) {
+      newErrors.password = "Password must be at least 3 characters";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+    setErrors({ username: "", password: "" });
 
-    if (!username || !password) {
-      setMessage("Please fill out the form");
+    if (!validateForm()) {
       return;
     }
 
@@ -111,26 +138,36 @@ function App() {
                 <input
                   type="text"
                   id="username"
-                  className="form-control rounded-pill shadow-sm"
+                  className={`form-control rounded-pill shadow-sm ${errors.username ? 'is-invalid' : ''}`}
                   placeholder="Username"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    setErrors(prev => ({ ...prev, username: "" }));
+                  }}
                 />
                 <label htmlFor="username">Username (or first_name)</label>
+                {errors.username && (
+                  <div className="invalid-feedback">{errors.username}</div>
+                )}
               </div>
 
               <div className="form-floating mb-3">
                 <input
                   type="password"
                   id="password"
-                  className="form-control rounded-pill shadow-sm"
+                  className={`form-control rounded-pill shadow-sm ${errors.password ? 'is-invalid' : ''}`}
                   placeholder="Password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrors(prev => ({ ...prev, password: "" }));
+                  }}
                 />
                 <label htmlFor="password">Password (or last_name)</label>
+                {errors.password && (
+                  <div className="invalid-feedback">{errors.password}</div>
+                )}
               </div>
 
               {message && (

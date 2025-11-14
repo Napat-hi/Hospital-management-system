@@ -124,6 +124,28 @@ useEffect(() => {
     dob: ""
   });
 
+  // ---- Validation errors state ----
+  const [formErrors, setFormErrors] = useState({
+    fullName: "",
+    department: "",
+    specialization: "",
+    phone: "",
+    email: "",
+    position: "",
+    dob: ""
+  });
+
+  // ---- Validation errors state ----
+  const [formErrors, setFormErrors] = useState({
+    fullName: "",
+    department: "",
+    specialization: "",
+    phone: "",
+    email: "",
+    position: "",
+    dob: ""
+  });
+
   // ---- เมนูซ้าย ----
   const menu = [
     { key: "create", label: "Create" },
@@ -190,12 +212,109 @@ useEffect(() => {
     return `${day}${month}${year}`;
   };
 
+  // ---- Validate email format ----
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // ---- Validate phone format ----
+  const validatePhone = (phone) => {
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    return phoneRegex.test(phone);
+  };
+
+  // ---- Validate create user form ----
+  const validateCreateForm = () => {
+    const errors = {
+      fullName: "",
+      department: "",
+      specialization: "",
+      phone: "",
+      email: "",
+      position: "",
+      dob: ""
+    };
+    let isValid = true;
+
+    // Full Name validation
+    if (!formData.fullName.trim()) {
+      errors.fullName = "Full name is required";
+      isValid = false;
+    } else if (formData.fullName.trim().split(/\s+/).length < 2) {
+      errors.fullName = "Please enter both first and last name";
+      isValid = false;
+    } else if (formData.fullName.trim().length < 3) {
+      errors.fullName = "Name must be at least 3 characters";
+      isValid = false;
+    }
+
+    // Department validation
+    if (!formData.department) {
+      errors.department = "Department is required";
+      isValid = false;
+    }
+
+    // Role-specific validation
+    if (role === "Doctor") {
+      if (!formData.specialization) {
+        errors.specialization = "Specialization is required for doctors";
+        isValid = false;
+      }
+    } else if (role === "Staff") {
+      if (!formData.position) {
+        errors.position = "Position is required for staff";
+        isValid = false;
+      }
+    }
+
+    // Date of Birth validation
+    if (!formData.dob) {
+      errors.dob = "Date of birth is required";
+      isValid = false;
+    } else {
+      const dob = new Date(formData.dob);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      if (age < 18 || age > 100) {
+        errors.dob = "Age must be between 18 and 100 years";
+        isValid = false;
+      }
+    }
+
+    // Phone validation
+    if (!formData.phone || !formData.phone.trim()) {
+      errors.phone = "Phone number is required";
+      isValid = false;
+    } else if (!validatePhone(formData.phone)) {
+      errors.phone = "Invalid phone number format";
+      isValid = false;
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      errors.email = "Email is required";
+      isValid = false;
+    } else if (!validateEmail(formData.email)) {
+      errors.email = "Invalid email format";
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
+  };
+
   // ---- Handle form input changes ----
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+    // Clear error for this field
+    setFormErrors(prev => ({
+      ...prev,
+      [name]: ""
     }));
   };
 
@@ -204,9 +323,8 @@ useEffect(() => {
   const handleCreateUser = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (!formData.fullName || !formData.dob) {
-      alert("Please fill in all required fields (Full Name and Date of Birth)");
+    // Validate form
+    if (!validateCreateForm()) {
       return;
     }
 
@@ -247,6 +365,24 @@ useEffect(() => {
           phone: "",
           email: "",
           position: ""
+        });
+        setFormErrors({
+          fullName: "",
+          department: "",
+          specialization: "",
+          phone: "",
+          email: "",
+          position: "",
+          dob: ""
+        });
+        setFormErrors({
+          fullName: "",
+          department: "",
+          specialization: "",
+          phone: "",
+          email: "",
+          position: "",
+          dob: ""
         });
         setRole("");
       } else {
@@ -309,14 +445,16 @@ useEffect(() => {
   };
 
   // ---- Handle edit user selection and form display ----
-  const handleEditUserClick = () => {
-    if (!selectedUserId) {
+  const handleEditUserClick = (userId) => {
+    const userIdToEdit = userId || selectedUserId;
+    
+    if (!userIdToEdit) {
       alert("Please select a user to edit");
       return;
     }
 
     // Find the selected user
-    const user = listData.find(u => u.id === parseInt(selectedUserId));
+    const user = listData.find(u => u.id === parseInt(userIdToEdit));
     if (user) {
       // Populate edit form with user data
       setEditFormData({
@@ -496,11 +634,11 @@ useEffect(() => {
                       <>
                         <div className="row">
                           <div className="col-md-4">
-                            <label className="form-label mt-4">First Name</label>
+                            <label className="form-label mt-4">First Name <span className="text-danger">*</span></label>
                             <input
                               type="text"
                               name="first_name"
-                              className="form-control"
+                              className={`form-control ${formErrors.fullName ? 'is-invalid' : ''}`}
                               placeholder="e.g. John"
                               value={formData.first_name}
                               onChange={handleInputChange}
@@ -516,12 +654,15 @@ useEffect(() => {
                               value={formData.last_name}
                               onChange={handleInputChange}
                             />
+                            {formErrors.fullName && (
+                              <div className="invalid-feedback">{formErrors.fullName}</div>
+                            )}
                           </div>
                           <div className="col-md-4">
-                            <label className="form-label mt-4">Department</label>
+                            <label className="form-label mt-4">Department <span className="text-danger">*</span></label>
                             <select
                               name="department"
-                              className="form-select"
+                              className={`form-select ${formErrors.department ? 'is-invalid' : ''}`}
                               value={formData.department}
                               onChange={handleInputChange}
                             >
@@ -532,15 +673,18 @@ useEffect(() => {
                               <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
                               <option value="Emergency Medicine">Emergency Medicine</option>
                             </select>
+                            {formErrors.department && (
+                              <div className="invalid-feedback">{formErrors.department}</div>
+                            )}
                           </div>
                           <div className="col-4">
                             {/* Conditional field: Specialization for Doctor, Position for Staff */}
                             {role === 'Doctor' ? (
                               <>
-                                <label className="form-label mt-4">Specialization</label>
+                                <label className="form-label mt-4">Specialization <span className="text-danger">*</span></label>
                                 <select
                                   name="specialization"
-                                  className="form-select"
+                                  className={`form-select ${formErrors.specialization ? 'is-invalid' : ''}`}
                                   value={formData.specialization || ""}
                                   onChange={handleInputChange}
                                 >
@@ -551,13 +695,16 @@ useEffect(() => {
                                   <option value="Pediatrics">Pediatrics</option>
                                   <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
                                 </select>
+                                {formErrors.specialization && (
+                                  <div className="invalid-feedback">{formErrors.specialization}</div>
+                                )}
                               </>
                             ) : (
                               <>
-                                <label className="form-label mt-4">Position</label>
+                                <label className="form-label mt-4">Position <span className="text-danger">*</span></label>
                                 <select
                                   name="position"
-                                  className="form-select"
+                                  className={`form-select ${formErrors.position ? 'is-invalid' : ''}`}
                                   value={formData.position || ""}
                                   onChange={handleInputChange}
                                 >
@@ -573,6 +720,9 @@ useEffect(() => {
                                   <option value="Paramedic">Paramedic</option>
                                   <option value="Hospital Administrator">Hospital Administrator</option>
                                 </select>
+                                {formErrors.position && (
+                                  <div className="invalid-feedback">{formErrors.position}</div>
+                                )}
                               </>
                             )}
                           </div>
@@ -583,34 +733,43 @@ useEffect(() => {
                             <input
                               type="date"
                               name="dob"
-                              className="form-control"
+                              className={`form-control ${formErrors.dob ? 'is-invalid' : ''}`}
                               value={formData.dob || ""}
                               onChange={handleInputChange}
-                              required
+                              max={new Date().toISOString().split('T')[0]}
                             />
                             <small className="text-muted">Used to generate login password</small>
+                            {formErrors.dob && (
+                              <div className="invalid-feedback">{formErrors.dob}</div>
+                            )}
                           </div>
                           <div className="col-4">
-                            <label className="form-label mt-2">Phone Number</label>
+                            <label className="form-label mt-2">Phone Number <span className="text-danger">*</span></label>
                             <input
-                              type="text"
+                              type="tel"
                               name="phone"
-                              className="form-control"
+                              className={`form-control ${formErrors.phone ? 'is-invalid' : ''}`}
                               placeholder="e.g. 123-456-7890"
                               value={formData.phone || ""}
                               onChange={handleInputChange}
                             />
+                            {formErrors.phone && (
+                              <div className="invalid-feedback">{formErrors.phone}</div>
+                            )}
                           </div>
                           <div className="col-4">
-                            <label className="form-label mt-2">Email Address</label>
+                            <label className="form-label mt-2">Email Address <span className="text-danger">*</span></label>
                             <input
                               type="email"
                               name="email"
-                              className="form-control"
+                              className={`form-control ${formErrors.email ? 'is-invalid' : ''}`}
                               placeholder="e.g. johndoe@example.com"
                               value={formData.email || ""}
                               onChange={handleInputChange}
                             />
+                            {formErrors.email && (
+                              <div className="invalid-feedback">{formErrors.email}</div>
+                            )}
                           </div>
                         </div>
                       </>
@@ -729,17 +888,23 @@ useEffect(() => {
                 </div>
                 
                 {/* Show results only after search */}
-                {showEditResults && !showEditForm && (
+                {showEditResults && (
                   <div className="card shadow-sm mt-3">
                     <div className="card-body">
                       <h5 className="card-title mb-3">Search Results</h5>
                       <form className="row gy-2 gx-2">
-                        <div className="col-md-8">
-                          <label className="form-label">Select User</label>
+                        <div className="col-md-12">
+                          <label className="form-label">Select User to Edit</label>
                           <select 
                             className="form-select"
                             value={selectedUserId}
-                            onChange={(e) => setSelectedUserId(e.target.value)}
+                            onChange={(e) => {
+                              const userId = e.target.value;
+                              setSelectedUserId(userId);
+                              if (userId) {
+                                handleEditUserClick(userId);
+                              }
+                            }}
                           >
                             <option value="">Select a user to edit</option>
                             {listData.map((user) => (
@@ -748,15 +913,6 @@ useEffect(() => {
                               </option>
                             ))}
                           </select>
-                        </div>
-                        <div className="col-md-4 d-flex align-items-end">
-                          <button 
-                            type="button" 
-                            className="btn btn-warning w-100"
-                            onClick={handleEditUserClick}
-                          >
-                            Edit
-                          </button>
                         </div>
                       </form>
                     </div>
@@ -913,7 +1069,7 @@ useEffect(() => {
                               className="btn btn-secondary w-100"
                               onClick={() => {
                                 setShowEditForm(false);
-                                setShowEditResults(true);
+                                setSelectedUserId("");
                               }}
                             >
                               Cancel
