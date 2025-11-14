@@ -225,6 +225,13 @@ useEffect(() => {
     };
     let isValid = true;
 
+    // Role validation (must be selected first)
+    if (!role) {
+      alert("Please select a role (Doctor or Staff) before creating a user");
+      isValid = false;
+      return false;
+    }
+
     // First Name validation
     if (!formData.first_name || !formData.first_name.trim()) {
       errors.first_name = "First name is required";
