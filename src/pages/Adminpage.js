@@ -126,18 +126,8 @@ useEffect(() => {
 
   // ---- Validation errors state ----
   const [formErrors, setFormErrors] = useState({
-    fullName: "",
-    department: "",
-    specialization: "",
-    phone: "",
-    email: "",
-    position: "",
-    dob: ""
-  });
-
-  // ---- Validation errors state ----
-  const [formErrors, setFormErrors] = useState({
-    fullName: "",
+    first_name: "",
+    last_name: "",
     department: "",
     specialization: "",
     phone: "",
@@ -188,17 +178,14 @@ useEffect(() => {
   // ---- Generate username from first name and last name ----
   // Format: firstname.first3letters_of_lastname
   // Example: "John Doe" -> "john.doe"
-  const generateUsername = (fullName) => {
-    if (!fullName) return "";
+  const generateUsername = (firstName, lastName) => {
+    if (!firstName || !lastName) return "";
     
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length < 2) return fullName.toLowerCase().replace(/\s+/g, '');
+    const firstLower = firstName.trim().toLowerCase();
+    const lastLower = lastName.trim().toLowerCase();
+    const lastNamePrefix = lastLower.substring(0, 3);
     
-    const firstName = parts[0].toLowerCase();
-    const lastName = parts[parts.length - 1].toLowerCase();
-    const lastNamePrefix = lastName.substring(0, 3);
-    
-    return `${firstName}.${lastNamePrefix}`;
+    return `${firstLower}.${lastNamePrefix}`;
   };
 
   // ---- Generate password from date of birth ----
@@ -227,7 +214,8 @@ useEffect(() => {
   // ---- Validate create user form ----
   const validateCreateForm = () => {
     const errors = {
-      fullName: "",
+      first_name: "",
+      last_name: "",
       department: "",
       specialization: "",
       phone: "",
@@ -237,15 +225,21 @@ useEffect(() => {
     };
     let isValid = true;
 
-    // Full Name validation
-    if (!formData.fullName.trim()) {
-      errors.fullName = "Full name is required";
+    // First Name validation
+    if (!formData.first_name || !formData.first_name.trim()) {
+      errors.first_name = "First name is required";
       isValid = false;
-    } else if (formData.fullName.trim().split(/\s+/).length < 2) {
-      errors.fullName = "Please enter both first and last name";
+    } else if (formData.first_name.trim().length < 2) {
+      errors.first_name = "First name must be at least 2 characters";
       isValid = false;
-    } else if (formData.fullName.trim().length < 3) {
-      errors.fullName = "Name must be at least 3 characters";
+    }
+
+    // Last Name validation
+    if (!formData.last_name || !formData.last_name.trim()) {
+      errors.last_name = "Last name is required";
+      isValid = false;
+    } else if (formData.last_name.trim().length < 2) {
+      errors.last_name = "Last name must be at least 2 characters";
       isValid = false;
     }
 
@@ -329,14 +323,15 @@ useEffect(() => {
     }
 
     // Generate username and password
-    const username = generateUsername(formData.fullName);
+    const username = generateUsername(formData.first_name, formData.last_name);
     const password = generatePassword(formData.dob);
 
     // Prepare data to send to backend
-    // Expected format: { role, fullName, dob, username, password, department, specialization/position, phone, email }
     const userData = {
       role: role,
-      ...formData
+      ...formData,
+      username: username,
+      password: password
     };
 
     console.log("Sending data to backend:", userData);
@@ -359,15 +354,8 @@ useEffect(() => {
 
         // Reset form after successful creation
         setFormData({
-          fullName: "",
-          department: "",
-          specialization: "",
-          phone: "",
-          email: "",
-          position: ""
-        });
-        setFormErrors({
-          fullName: "",
+          first_name: "",
+          last_name: "",
           department: "",
           specialization: "",
           phone: "",
@@ -376,7 +364,8 @@ useEffect(() => {
           dob: ""
         });
         setFormErrors({
-          fullName: "",
+          first_name: "",
+          last_name: "",
           department: "",
           specialization: "",
           phone: "",
@@ -638,24 +627,27 @@ useEffect(() => {
                             <input
                               type="text"
                               name="first_name"
-                              className={`form-control ${formErrors.fullName ? 'is-invalid' : ''}`}
+                              className={`form-control ${formErrors.first_name ? 'is-invalid' : ''}`}
                               placeholder="e.g. John"
                               value={formData.first_name}
                               onChange={handleInputChange}
                             />
+                            {formErrors.first_name && (
+                              <div className="invalid-feedback">{formErrors.first_name}</div>
+                            )}
                           </div>
                           <div className="col-md-4">
-                            <label className="form-label mt-4">Last Name</label>
+                            <label className="form-label mt-4">Last Name <span className="text-danger">*</span></label>
                             <input
                               type="text"
                               name="last_name"
-                              className="form-control"
+                              className={`form-control ${formErrors.last_name ? 'is-invalid' : ''}`}
                               placeholder="e.g. Doe"
                               value={formData.last_name}
                               onChange={handleInputChange}
                             />
-                            {formErrors.fullName && (
-                              <div className="invalid-feedback">{formErrors.fullName}</div>
+                            {formErrors.last_name && (
+                              <div className="invalid-feedback">{formErrors.last_name}</div>
                             )}
                           </div>
                           <div className="col-md-4">
@@ -948,8 +940,8 @@ useEffect(() => {
                                 name="first_name"
                                 className="form-control"
                                 placeholder="e.g. John"
-                                value={formData.first_name}
-                                onChange={handleInputChange}
+                                value={editFormData.first_name}
+                                onChange={handleEditInputChange}
                               />
                             </div>
                             <div className="col-md-4">
@@ -959,8 +951,8 @@ useEffect(() => {
                                 name="last_name"
                                 className="form-control"
                                 placeholder="e.g. Doe"
-                                value={formData.last_name}
-                                onChange={handleInputChange}
+                                value={editFormData.last_name}
+                                onChange={handleEditInputChange}
                               />
                             </div>
                             <div className="col-md-4">
