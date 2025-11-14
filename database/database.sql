@@ -4,7 +4,7 @@
    - SHA-256 Hashing for passwords and identifiers
    ========================================================= */
 
-
+DROP DATABASE IF EXISTS HMS;
 CREATE DATABASE HMS
   DEFAULT CHARACTER SET utf8mb4
 DEFAULT COLLATE utf8mb4_unicode_ci;

@@ -197,6 +197,31 @@ export default function Staffpage() {
     status: "unpaid"
   });
 
+  // Validation errors states
+  const [patientFormErrors, setPatientFormErrors] = useState({
+    first_name: "",
+    last_name: "",
+    sex: "",
+    dob: "",
+    address: "",
+    phone: "",
+    email: ""
+  });
+
+  const [appointmentFormErrors, setAppointmentFormErrors] = useState({
+    patientId: "",
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    reason: ""
+  });
+
+  const [billFormErrors, setBillFormErrors] = useState({
+    consultationFee: "",
+    medicationCost: "",
+    labTestsCost: ""
+  });
+
   // ---- Dummy data for testing ----
   // TODO: Replace with API calls
   // Example implementation:
@@ -346,6 +371,173 @@ export default function Staffpage() {
     navigate("/"); // กลับหน้า login/หน้าแรก
   };
 
+  // ---- Validation helper functions ----
+  const validateEmail = (email) => {
+    if (!email) return true; // Email is optional
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone) return true; // Phone is optional
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    return phoneRegex.test(phone);
+  };
+
+  // ---- Validate patient form ----
+  const validatePatientForm = () => {
+    const errors = {
+      first_name: "",
+      last_name: "",
+      sex: "",
+      dob: "",
+      address: "",
+      phone: "",
+      email: ""
+    };
+    let isValid = true;
+
+    // First name validation
+    if (!patientFormData.first_name.trim()) {
+      errors.first_name = "First name is required";
+      isValid = false;
+    } else if (patientFormData.first_name.trim().length < 2) {
+      errors.first_name = "First name must be at least 2 characters";
+      isValid = false;
+    }
+
+    // Last name validation
+    if (!patientFormData.last_name.trim()) {
+      errors.last_name = "Last name is required";
+      isValid = false;
+    } else if (patientFormData.last_name.trim().length < 2) {
+      errors.last_name = "Last name must be at least 2 characters";
+      isValid = false;
+    }
+
+    // Sex validation
+    if (!patientFormData.sex) {
+      errors.sex = "Sex is required";
+      isValid = false;
+    }
+
+    // DOB validation
+    if (!patientFormData.dob) {
+      errors.dob = "Date of birth is required";
+      isValid = false;
+    } else {
+      const dob = new Date(patientFormData.dob);
+      const today = new Date();
+      if (dob > today) {
+        errors.dob = "Date of birth cannot be in the future";
+        isValid = false;
+      }
+    }
+
+    // Phone validation
+    if (patientFormData.phone && !validatePhone(patientFormData.phone)) {
+      errors.phone = "Invalid phone number format";
+      isValid = false;
+    }
+
+    // Email validation
+    if (patientFormData.email && !validateEmail(patientFormData.email)) {
+      errors.email = "Invalid email format";
+      isValid = false;
+    }
+
+    setPatientFormErrors(errors);
+    return isValid;
+  };
+
+  // ---- Validate appointment form ----
+  const validateAppointmentForm = () => {
+    const errors = {
+      patientId: "",
+      doctorId: "",
+      appointmentDate: "",
+      appointmentTime: "",
+      reason: ""
+    };
+    let isValid = true;
+
+    if (!appointmentFormData.patientId) {
+      errors.patientId = "Please select a patient";
+      isValid = false;
+    }
+
+    if (!appointmentFormData.doctorId) {
+      errors.doctorId = "Please select a doctor";
+      isValid = false;
+    }
+
+    if (!appointmentFormData.appointmentDate) {
+      errors.appointmentDate = "Appointment date is required";
+      isValid = false;
+    } else {
+      const appointmentDate = new Date(appointmentFormData.appointmentDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (appointmentDate < today) {
+        errors.appointmentDate = "Appointment date cannot be in the past";
+        isValid = false;
+      }
+    }
+
+    if (!appointmentFormData.appointmentTime) {
+      errors.appointmentTime = "Appointment time is required";
+      isValid = false;
+    }
+
+    if (!appointmentFormData.reason.trim()) {
+      errors.reason = "Reason for appointment is required";
+      isValid = false;
+    } else if (appointmentFormData.reason.trim().length < 10) {
+      errors.reason = "Reason must be at least 10 characters";
+      isValid = false;
+    }
+
+    setAppointmentFormErrors(errors);
+    return isValid;
+  };
+
+  // ---- Validate bill form ----
+  const validateBillForm = () => {
+    const errors = {
+      consultationFee: "",
+      medicationCost: "",
+      labTestsCost: ""
+    };
+    let isValid = true;
+
+    if (!billFormData.consultationFee) {
+      errors.consultationFee = "Consultation fee is required";
+      isValid = false;
+    } else if (parseFloat(billFormData.consultationFee) < 0) {
+      errors.consultationFee = "Consultation fee must be non-negative";
+      isValid = false;
+    }
+
+    if (!billFormData.medicationCost) {
+      errors.medicationCost = "Medication cost is required";
+      isValid = false;
+    } else if (parseFloat(billFormData.medicationCost) < 0) {
+      errors.medicationCost = "Medication cost must be non-negative";
+      isValid = false;
+    }
+
+    if (!billFormData.labTestsCost) {
+      errors.labTestsCost = "Lab tests cost is required";
+      isValid = false;
+    } else if (parseFloat(billFormData.labTestsCost) < 0) {
+      errors.labTestsCost = "Lab tests cost must be non-negative";
+      isValid = false;
+    }
+
+    setBillFormErrors(errors);
+    return isValid;
+  };
+
   // ---- Handle patient search ----
   const handlePatientSearch = () => {
     setShowPatientResults(true);
@@ -370,6 +562,11 @@ export default function Staffpage() {
     setPatientFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+    // Clear error for this field
+    setPatientFormErrors(prev => ({
+      ...prev,
+      [name]: ""
     }));
   };
 
@@ -404,9 +601,8 @@ export default function Staffpage() {
   const handleCreatePatient = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!patientFormData.first_name || !patientFormData.last_name || !patientFormData.sex || !patientFormData.dob) {
-      alert("Please fill in all required fields (First Name, Last Name, Sex, Date of Birth)");
+    // Validate form
+    if (!validatePatientForm()) {
       return;
     }
 
@@ -423,6 +619,15 @@ export default function Staffpage() {
       
       // Reset form
       setPatientFormData({
+        first_name: "",
+        last_name: "",
+        sex: "",
+        dob: "",
+        address: "",
+        phone: "",
+        email: ""
+      });
+      setPatientFormErrors({
         first_name: "",
         last_name: "",
         sex: "",
@@ -479,6 +684,11 @@ export default function Staffpage() {
     setAppointmentFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+    // Clear error for this field
+    setAppointmentFormErrors(prev => ({
+      ...prev,
+      [name]: ""
     }));
   };
 
@@ -563,11 +773,8 @@ export default function Staffpage() {
   const handleCreateAppointment = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!appointmentFormData.patientId || !appointmentFormData.doctorId || 
-        !appointmentFormData.appointmentDate || !appointmentFormData.appointmentTime || 
-        !appointmentFormData.reason) {
-      alert("Please fill in all required fields");
+    // Validate form
+    if (!validateAppointmentForm()) {
       return;
     }
 
@@ -584,6 +791,13 @@ export default function Staffpage() {
       
       // Reset form
       setAppointmentFormData({
+        patientId: "",
+        doctorId: "",
+        appointmentDate: "",
+        appointmentTime: "",
+        reason: ""
+      });
+      setAppointmentFormErrors({
         patientId: "",
         doctorId: "",
         appointmentDate: "",
@@ -678,6 +892,11 @@ export default function Staffpage() {
       ...prev,
       [name]: value
     }));
+    // Clear error for this field
+    setBillFormErrors(prev => ({
+      ...prev,
+      [name]: ""
+    }));
   };
 
   // ---- Handle generate bill ----
@@ -690,13 +909,12 @@ export default function Staffpage() {
       return;
     }
 
-    // Validate costs
-    if (!billFormData.consultationFee || !billFormData.medicationCost || !billFormData.labTestsCost) {
-      alert("Please fill in all cost fields");
+    // Validate form
+    if (!validateBillForm()) {
       return;
     }
 
-    try {
+    try{
       const appointment = dummyAppointments.find(a => a.id === parseInt(selectedBillingAppointmentId));
       
       const totalAmount = 
