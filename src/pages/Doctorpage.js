@@ -385,7 +385,7 @@ export default function Doctorpage() {
                     <p className="text-muted mb-3">
                       Search for a patient to view their information
                     </p>
-                    <form className="row gy-2 gx-2">
+                    <form className="row gy-2 gx-2" onSubmit={(e) => { e.preventDefault(); handlePatientSearch(); }}>
                       <div className="col-md-8">
                         <label className="form-label">Patient Name Search</label>
                         <input 
@@ -398,9 +398,8 @@ export default function Doctorpage() {
                       </div>
                       <div className="col-md-4 d-flex align-items-end">
                         <button 
-                          type="button" 
+                          type="submit" 
                           className="btn btn-outline-primary w-100"
-                          onClick={handlePatientSearch}
                         >
                           Search
                         </button>

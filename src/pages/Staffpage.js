@@ -115,11 +115,12 @@
  *    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
+import { staffAPI } from "../api/staffAPI";
 
 export default function Staffpage() {
   const location = useLocation();
@@ -142,6 +143,7 @@ export default function Staffpage() {
   const [showPatientResults, setShowPatientResults] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [mainPatientSearchQuery, setMainPatientSearchQuery] = useState("");
   const [showCreatePatientForm, setShowCreatePatientForm] = useState(false);
   const [showEditPatientForm, setShowEditPatientForm] = useState(false);
   const [patientFormData, setPatientFormData] = useState({
@@ -151,7 +153,8 @@ export default function Staffpage() {
     dob: "",
     address: "",
     phone: "",
-    email: ""
+    email: "",
+    emergency_contact: ""
   });
   const [editPatientFormData, setEditPatientFormData] = useState({
     id: "",
@@ -161,7 +164,8 @@ export default function Staffpage() {
     dob: "",
     address: "",
     phone: "",
-    email: ""
+    email: "",
+    emergency_contact: ""
   });
   
   // Appointment view states
@@ -205,7 +209,8 @@ export default function Staffpage() {
     dob: "",
     address: "",
     phone: "",
-    email: ""
+    email: "",
+    emergency_contact: ""
   });
 
   const [appointmentFormErrors, setAppointmentFormErrors] = useState({
@@ -223,115 +228,66 @@ export default function Staffpage() {
   });
 
   // ---- Dummy data for testing ----
-  // TODO: Replace with API calls
-  // Example implementation:
-  // const [patients, setPatients] = useState([]);
-  // useEffect(() => {
-  //   const fetchPatients = async () => {
-  //     try {
-  //       const response = await fetch('http://your-backend-url/api/patients');
-  //       const data = await response.json();
-  //       setPatients(data);
-  //     } catch (error) {
-  //       console.error('Error fetching patients:', error);
-  //       alert('Failed to load patients. Please try again.');
-  //     }
-  //   };
-  //   fetchPatients();
-  // }, []);
-  const dummyPatients = [
-    { id: 1, first_name: "Alice", last_name: "Johnson", sex: "Female", dob: "1985-03-15", address: "123 Main St, Springfield", phone: "555-0101", email: "alice.j@email.com" },
-    { id: 2, first_name: "Bob", last_name: "Smith", sex: "Male", dob: "1978-07-22", address: "456 Oak Ave, Riverside", phone: "555-0102", email: "bob.s@email.com" },
-    { id: 3, first_name: "Carol", last_name: "Williams", sex: "Female", dob: "1990-11-30", address: "789 Pine Rd, Lakewood", phone: "555-0103", email: "carol.w@email.com" },
-    { id: 4, first_name: "David", last_name: "Brown", sex: "Male", dob: "1965-05-18", address: "321 Elm St, Hillside", phone: "555-0104", email: "david.b@email.com" },
-    { id: 5, first_name: "Emma", last_name: "Davis", sex: "Female", dob: "2000-09-08", address: "654 Maple Dr, Greenfield", phone: "555-0105", email: "emma.d@email.com" },
-  ];
+  // ============================================
+  // BACKEND DATA - Load from database
+  // ============================================
+  const [patients, setPatients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // TODO: Replace with API calls
-  // Example implementation:
-  // const [appointments, setAppointments] = useState([]);
-  // useEffect(() => {
-  //   const fetchAppointments = async () => {
-  //     try {
-  //       const response = await fetch('http://your-backend-url/api/appointments');
-  //       const data = await response.json();
-  //       setAppointments(data);
-  //     } catch (error) {
-  //       console.error('Error fetching appointments:', error);
-  //       alert('Failed to load appointments. Please try again.');
-  //     }
-  //   };
-  //   fetchAppointments();
-  // }, []);
-  const dummyAppointments = [
-    { 
-      id: 1, 
-      patientId: 1,
-      patientName: "Alice Johnson", 
-      doctorId: 1,
-      doctorName: "Dr. Sarah Brown", 
-      appointmentDate: "2025-11-05", 
-      appointmentTime: "09:00 AM", 
-      reason: "Annual physical examination and blood work",
-      status: "scheduled"
-    },
-    { 
-      id: 2, 
-      patientId: 2,
-      patientName: "Bob Smith", 
-      doctorId: 2,
-      doctorName: "Dr. John Doe", 
-      appointmentDate: "2025-11-05", 
-      appointmentTime: "10:30 AM", 
-      reason: "Follow-up consultation for hypertension",
-      status: "completed"
-    },
-    { 
-      id: 3, 
-      patientId: 3,
-      patientName: "Carol Williams", 
-      doctorId: 3,
-      doctorName: "Dr. Emily Davis", 
-      appointmentDate: "2025-11-06", 
-      appointmentTime: "02:00 PM", 
-      reason: "Prenatal checkup - 20 weeks",
-      status: "completed"
-    },
-    { 
-      id: 4, 
-      patientId: 4,
-      patientName: "David Brown", 
-      doctorId: 4,
-      doctorName: "Dr. Lisa Anderson", 
-      appointmentDate: "2025-11-06", 
-      appointmentTime: "11:00 AM", 
-      reason: "Neurological assessment for recurring headaches",
-      status: "scheduled"
-    },
-  ];
+  // Load all data on component mount
+  useEffect(() => {
+    loadPatients();
+    loadAppointments();
+    loadDoctors();
+    loadBills();
+  }, []);
 
-  // TODO: Replace with API calls
-  // Example implementation:
-  // const [doctors, setDoctors] = useState([]);
-  // useEffect(() => {
-  //   const fetchDoctors = async () => {
-  //     try {
-  //       const response = await fetch('http://your-backend-url/api/doctors');
-  //       const data = await response.json();
-  //       setDoctors(data);
-  //     } catch (error) {
-  //       console.error('Error fetching doctors:', error);
-  //     }
-  //   };
-  //   fetchDoctors();
-  // }, []);
-  const dummyDoctors = [
-    { id: 1, name: "Dr. Sarah Brown", department: "General Practice" },
-    { id: 2, name: "Dr. John Doe", department: "Cardiology" },
-    { id: 3, name: "Dr. Emily Davis", department: "Obstetrics" },
-    { id: 4, name: "Dr. Lisa Anderson", department: "Neurology" },
-    { id: 5, name: "Dr. Jane Smith", department: "Pediatrics" },
-  ];
+  const loadPatients = async () => {
+    try {
+      setLoading(true);
+      const data = await staffAPI.getPatients();
+      setPatients(data);
+    } catch (error) {
+      console.error('Error loading patients:', error);
+      alert('Failed to load patients. Make sure backend is running!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAppointments = async () => {
+    try {
+      setLoading(true);
+      const data = await staffAPI.getAppointments();
+      setAppointments(data);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      alert('Failed to load appointments. Make sure backend is running!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDoctors = async () => {
+    try {
+      const data = await staffAPI.getDoctors();
+      setDoctors(data);
+    } catch (error) {
+      console.error('Error loading doctors:', error);
+    }
+  };
+
+  const loadBills = async () => {
+    try {
+      const data = await staffAPI.getBills();
+      setBills(data);
+    } catch (error) {
+      console.error('Error loading bills:', error);
+    }
+  };
 
   // ---- เมนูซ้าย (สไตล์เดียวกับ Doctorpage) ----
   const menu = [
@@ -393,7 +349,8 @@ export default function Staffpage() {
       dob: "",
       address: "",
       phone: "",
-      email: ""
+      email: "",
+      emergency_contact: ""
     };
     let isValid = true;
 
@@ -498,6 +455,21 @@ export default function Staffpage() {
     }
 
     setAppointmentFormErrors(errors);
+    
+    // Show validation errors to user
+    if (!isValid) {
+      const errorMessages = [];
+      if (errors.patientId) errorMessages.push('• ' + errors.patientId);
+      if (errors.doctorId) errorMessages.push('• ' + errors.doctorId);
+      if (errors.appointmentDate) errorMessages.push('• ' + errors.appointmentDate);
+      if (errors.appointmentTime) errorMessages.push('• ' + errors.appointmentTime);
+      if (errors.reason) errorMessages.push('• ' + errors.reason);
+      
+      if (errorMessages.length > 0) {
+        alert('Please fix the following errors:\n\n' + errorMessages.join('\n'));
+      }
+    }
+    
     return isValid;
   };
 
@@ -550,7 +522,7 @@ export default function Staffpage() {
       return;
     }
 
-    const patient = dummyPatients.find(p => p.id === parseInt(selectedPatientId));
+    const patient = patients.find(p => p.id === parseInt(selectedPatientId));
     if (patient) {
       setSelectedPatient(patient);
     }
@@ -607,15 +579,13 @@ export default function Staffpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('http://your-backend-url/api/patients', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(patientFormData)
-      // });
-      // const data = await response.json();
-
+      // Call backend API to create patient
+      await staffAPI.createPatient(patientFormData);
+      
       alert("Patient created successfully!");
+      
+      // Reload patients from database
+      await loadPatients();
       
       // Reset form
       setPatientFormData({
@@ -625,7 +595,8 @@ export default function Staffpage() {
         dob: "",
         address: "",
         phone: "",
-        email: ""
+        email: "",
+        emergency_contact: ""
       });
       setPatientFormErrors({
         first_name: "",
@@ -634,13 +605,14 @@ export default function Staffpage() {
         dob: "",
         address: "",
         phone: "",
-        email: ""
+        email: "",
+        emergency_contact: ""
       });
       setShowCreatePatientForm(false);
       
     } catch (error) {
       console.error('Error creating patient:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
@@ -656,15 +628,13 @@ export default function Staffpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/patients/${editPatientFormData.id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(editPatientFormData)
-      // });
-      // const data = await response.json();
-
+      // Call backend API to update patient
+      await staffAPI.updatePatient(editPatientFormData.id, editPatientFormData);
+      
       alert("Patient information updated successfully!");
+      
+      // Reload patients from database
+      await loadPatients();
       
       // Update selected patient with new data
       setSelectedPatient({
@@ -674,7 +644,7 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error updating patient:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
@@ -747,47 +717,80 @@ export default function Staffpage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ---- Filter patients by search query ----
+  // ---- Filter patients by main search query (for viewing patient details) ----
+  const mainSearchFilteredPatients = useMemo(() => {
+    if (!mainPatientSearchQuery.trim()) return patients;
+    const query = mainPatientSearchQuery.toLowerCase();
+    return patients.filter(patient => {
+      const firstName = patient.first_name || '';
+      const lastName = patient.last_name || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return firstName.toLowerCase().includes(query) ||
+             lastName.toLowerCase().includes(query) ||
+             fullName.toLowerCase().includes(query);
+    });
+  }, [mainPatientSearchQuery, patients]);
+
+  // ---- Filter patients by search query (for appointment form) ----
   const filteredPatients = useMemo(() => {
-    if (!patientSearchQuery.trim()) return dummyPatients;
+    if (!patientSearchQuery.trim()) return patients;
     const query = patientSearchQuery.toLowerCase();
-    return dummyPatients.filter(patient => 
-      patient.first_name.toLowerCase().includes(query) ||
-      patient.last_name.toLowerCase().includes(query) ||
-      `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(query)
-    );
-  }, [patientSearchQuery]);
+    return patients.filter(patient => {
+      const firstName = patient.first_name || '';
+      const lastName = patient.last_name || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return firstName.toLowerCase().includes(query) ||
+             lastName.toLowerCase().includes(query) ||
+             fullName.toLowerCase().includes(query);
+    });
+  }, [patientSearchQuery, patients]);
 
   // ---- Filter doctors by search query ----
   const filteredDoctors = useMemo(() => {
-    if (!doctorSearchQuery.trim()) return dummyDoctors;
+    if (!doctorSearchQuery.trim()) return doctors;
     const query = doctorSearchQuery.toLowerCase();
-    return dummyDoctors.filter(doctor => 
-      doctor.name.toLowerCase().includes(query) ||
-      doctor.department.toLowerCase().includes(query)
-    );
-  }, [doctorSearchQuery]);
+    return doctors.filter(doctor => {
+      const name = doctor.name || '';
+      const department = doctor.department || doctor.specialization || '';
+      return name.toLowerCase().includes(query) ||
+             department.toLowerCase().includes(query);
+    });
+  }, [doctorSearchQuery, doctors]);
 
   // ---- Handle create appointment ----
-  // TODO: Replace with actual backend endpoint
   const handleCreateAppointment = async (e) => {
     e.preventDefault();
     
+    console.log('Form submitted with data:', appointmentFormData);
+    
     // Validate form
     if (!validateAppointmentForm()) {
+      console.log('Validation failed - check errors below');
+      // Show validation errors to user
+      const errorMessages = [];
+      if (appointmentFormErrors.patientId) errorMessages.push(appointmentFormErrors.patientId);
+      if (appointmentFormErrors.doctorId) errorMessages.push(appointmentFormErrors.doctorId);
+      if (appointmentFormErrors.appointmentDate) errorMessages.push(appointmentFormErrors.appointmentDate);
+      if (appointmentFormErrors.appointmentTime) errorMessages.push(appointmentFormErrors.appointmentTime);
+      if (appointmentFormErrors.reason) errorMessages.push(appointmentFormErrors.reason);
+      
+      if (errorMessages.length > 0) {
+        alert('Please fix the following errors:\n\n' + errorMessages.join('\n'));
+      }
       return;
     }
 
-    try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('http://your-backend-url/api/appointments', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(appointmentFormData)
-      // });
-      // const data = await response.json();
+    console.log('Validation passed, sending to API...');
 
+    try {
+      // Call backend API to create appointment
+      const result = await staffAPI.createAppointment(appointmentFormData);
+      console.log('API response:', result);
+      
       alert("Appointment created successfully!");
+      
+      // Reload appointments from database
+      await loadAppointments();
       
       // Reset form
       setAppointmentFormData({
@@ -810,7 +813,7 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error creating appointment:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
@@ -828,15 +831,13 @@ export default function Staffpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/appointments/${editAppointmentFormData.id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(editAppointmentFormData)
-      // });
-      // const data = await response.json();
-
+      // Call backend API to update appointment
+      await staffAPI.updateAppointment(editAppointmentFormData.id, editAppointmentFormData);
+      
       alert("Appointment updated successfully!");
+      
+      // Reload appointments from database
+      await loadAppointments();
       
       // Reset form
       setShowEditAppointmentForm(false);
@@ -844,12 +845,11 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
   // ---- Handle delete appointment ----
-  // TODO: Replace with actual backend endpoint
   const handleDeleteAppointment = async (appointmentId) => {
     // Confirm deletion
     const confirmed = window.confirm(
@@ -861,14 +861,13 @@ export default function Staffpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/appointments/${appointmentId}`, {
-      //   method: 'DELETE',
-      //   headers: { 'Content-Type': 'application/json' }
-      // });
-      // const data = await response.json();
-
+      // Call backend API to delete appointment
+      await staffAPI.deleteAppointment(appointmentId);
+      
       alert("Appointment deleted successfully!");
+      
+      // Reload appointments from database
+      await loadAppointments();
       
       // Close edit form if this appointment was being edited
       if (selectedAppointmentId === appointmentId) {
@@ -876,12 +875,9 @@ export default function Staffpage() {
         setSelectedAppointmentId("");
       }
       
-      // TODO: Refresh appointments list after successful deletion
-      // This will happen automatically when you connect to backend
-      
     } catch (error) {
       console.error('Error deleting appointment:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
@@ -915,67 +911,62 @@ export default function Staffpage() {
     }
 
     try{
-      const appointment = dummyAppointments.find(a => a.id === parseInt(selectedBillingAppointmentId));
+      const appointment = appointments.find(a => a.id === parseInt(selectedBillingAppointmentId));
       
-      const totalAmount = 
-        parseFloat(billFormData.consultationFee) + 
-        parseFloat(billFormData.medicationCost) + 
-        parseFloat(billFormData.labTestsCost);
-
-      const bill = {
-        id: Math.floor(Math.random() * 10000),
-        appointmentId: appointment.id,
-        patientId: appointment.patientId,
-        patientName: appointment.patientName,
-        doctorName: appointment.doctorName,
-        appointmentDate: appointment.appointmentDate,
+      console.log('Selected appointment:', appointment);
+      
+      if (!appointment) {
+        alert('Appointment not found!');
+        return;
+      }
+      
+      // Prepare bill data for backend
+      // Note: patient_id will be automatically retrieved by backend from appointment
+      const billData = {
+        appointmentId: parseInt(selectedBillingAppointmentId),
         consultationFee: parseFloat(billFormData.consultationFee),
-        medicationCost: parseFloat(billFormData.medicationCost),
-        labTestsCost: parseFloat(billFormData.labTestsCost),
-        totalAmount: totalAmount,
-        status: "unpaid",
-        generatedDate: new Date().toISOString().split('T')[0],
-        generatedBy: `${f_name} ${l_name}`
+        medicationCost: parseFloat(billFormData.medicationCost) || 0,
+        labTestsCost: parseFloat(billFormData.labTestsCost) || 0
       };
+      
+      console.log('Sending bill data:', billData);
 
-      // TODO: Replace with actual API call
-      // const response = await fetch('http://your-backend-url/api/billing/generate', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     appointmentId: selectedBillingAppointmentId,
-      //     ...billFormData
-      //   })
-      // });
-      // const data = await response.json();
-
-      setGeneratedBill(bill);
-      setGeneratedBills(prev => [...prev, bill]);
+      // Call backend API to generate bill
+      const newBill = await staffAPI.generateBill(billData);
+      
+      setGeneratedBill(newBill);
+      
+      // Reload bills from database
+      await loadBills();
+      
       alert("Bill generated successfully!");
+      
+      // Reset form
+      setBillFormData({
+        consultationFee: "",
+        medicationCost: "",
+        labTestsCost: ""
+      });
+      setSelectedBillingAppointmentId("");
       
     } catch (error) {
       console.error('Error generating bill:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
   // ---- Handle delete bill ----
-  // TODO: Replace with actual backend endpoint
   const handleDeleteBill = async (billId) => {
     if (!window.confirm("Are you sure you want to delete this bill? This action cannot be undone.")) {
       return;
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/billing/${billId}`, {
-      //   method: 'DELETE'
-      // });
-      // if (!response.ok) {
-      //   throw new Error('Failed to delete bill');
-      // }
-
-      setGeneratedBills(prev => prev.filter(bill => bill.id !== billId));
+      // Call backend API to delete bill
+      await staffAPI.deleteBill(billId);
+      
+      // Reload bills from database
+      await loadBills();
       
       // If the deleted bill is the currently displayed one, clear it
       if (generatedBill && generatedBill.id === billId) {
@@ -986,7 +977,7 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error deleting bill:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert('Error connecting to server. Please make sure backend is running!');
     }
   };
 
@@ -1176,6 +1167,17 @@ export default function Staffpage() {
                               placeholder="123 Main St, City"
                             />
                           </div>
+                          <div className="col-md-12">
+                            <label className="form-label">Emergency Contact</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              name="emergency_contact"
+                              value={patientFormData.emergency_contact}
+                              onChange={handlePatientInputChange}
+                              placeholder="Contact name and phone number"
+                            />
+                          </div>
                           <div className="col-12">
                             <button type="submit" className="btn btn-primary">
                               Create Patient
@@ -1195,10 +1197,16 @@ export default function Staffpage() {
                       <p className="text-muted mb-3">
                         Search for a patient to view their information
                       </p>
-                      <form className="row gy-2 gx-2">
+                      <form className="row gy-2 gx-2" onSubmit={(e) => { e.preventDefault(); handlePatientSearch(); }}>
                         <div className="col-md-8">
                           <label className="form-label">Patient Name Search</label>
-                          <input type="text" className="form-control" placeholder="Search patient by name..." />
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            placeholder="Search patient by name..." 
+                            value={mainPatientSearchQuery}
+                            onChange={(e) => setMainPatientSearchQuery(e.target.value)}
+                          />
                         </div>
                         <div className="col-md-4 d-flex align-items-end">
                           <button 
@@ -1218,7 +1226,10 @@ export default function Staffpage() {
                 {showPatientResults && !selectedPatient && (
                   <div className="card shadow-sm mt-3">
                     <div className="card-body">
-                      <h5 className="card-title mb-3">Search Results</h5>
+                      <h5 className="card-title mb-3">
+                        Search Results 
+                        <span className="badge bg-info ms-2">{mainSearchFilteredPatients.length} found</span>
+                      </h5>
                       <form className="row gy-2 gx-2">
                         <div className="col-md-8">
                           <label className="form-label">Select Patient</label>
@@ -1228,7 +1239,7 @@ export default function Staffpage() {
                             onChange={(e) => setSelectedPatientId(e.target.value)}
                           >
                             <option value="">Select a patient to view</option>
-                            {dummyPatients.map((patient) => (
+                            {mainSearchFilteredPatients.map((patient) => (
                               <option key={patient.id} value={patient.id}>
                                 {patient.first_name} {patient.last_name} - DOB: {patient.dob}
                               </option>
@@ -1328,6 +1339,15 @@ export default function Staffpage() {
                             type="text" 
                             className="form-control" 
                             value={selectedPatient.address}
+                            disabled
+                          />
+                        </div>
+                        <div className="col-md-12">
+                          <label className="form-label fw-semibold">Emergency Contact</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            value={selectedPatient.emergency_contact || "N/A"}
                             disabled
                           />
                         </div>
@@ -1442,6 +1462,17 @@ export default function Staffpage() {
                               placeholder="123 Main St, City"
                             />
                           </div>
+                          <div className="col-md-12">
+                            <label className="form-label">Emergency Contact</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              name="emergency_contact"
+                              value={editPatientFormData.emergency_contact}
+                              onChange={handleEditPatientInputChange}
+                              placeholder="Contact name and phone number"
+                            />
+                          </div>
                           <div className="col-12">
                             <button type="submit" className="btn btn-primary">
                               Update Patient
@@ -1500,7 +1531,7 @@ export default function Staffpage() {
                               required
                             >
                               <option value="">Select Patient</option>
-                              {dummyPatients.map((patient) => (
+                              {patients.map((patient) => (
                                 <option key={patient.id} value={patient.id}>
                                   {patient.first_name} {patient.last_name} (DOB: {patient.dob})
                                 </option>
@@ -1517,7 +1548,7 @@ export default function Staffpage() {
                               required
                             >
                               <option value="">Select Doctor</option>
-                              {dummyDoctors.map((doctor) => (
+                              {doctors.map((doctor) => (
                                 <option key={doctor.id} value={doctor.id}>
                                   {doctor.name} - {doctor.department}
                                 </option>
@@ -1583,7 +1614,7 @@ export default function Staffpage() {
                             <input 
                               type="text" 
                               className="form-control mb-2" 
-                              placeholder="Search patient by name..."
+                              placeholder="Type to search patient by name..."
                               value={patientSearchQuery}
                               onChange={(e) => setPatientSearchQuery(e.target.value)}
                             />
@@ -1593,22 +1624,22 @@ export default function Staffpage() {
                               value={appointmentFormData.patientId}
                               onChange={handleAppointmentInputChange}
                               required
-                              size="5"
                             >
-                              <option value="">Select Patient</option>
+                              <option value="">-- Select Patient --</option>
                               {filteredPatients.map((patient) => (
                                 <option key={patient.id} value={patient.id}>
                                   {patient.first_name} {patient.last_name} (DOB: {patient.dob})
                                 </option>
                               ))}
                             </select>
+                            <small className="text-muted">{filteredPatients.length} patient(s) shown</small>
                           </div>
                           <div className="col-md-6">
                             <label className="form-label">Doctor <span className="text-danger">*</span></label>
                             <input 
                               type="text" 
                               className="form-control mb-2" 
-                              placeholder="Search doctor by name or department..."
+                              placeholder="Type to search doctor by name or department..."
                               value={doctorSearchQuery}
                               onChange={(e) => setDoctorSearchQuery(e.target.value)}
                             />
@@ -1618,15 +1649,15 @@ export default function Staffpage() {
                               value={appointmentFormData.doctorId}
                               onChange={handleAppointmentInputChange}
                               required
-                              size="5"
                             >
-                              <option value="">Select Doctor</option>
+                              <option value="">-- Select Doctor --</option>
                               {filteredDoctors.map((doctor) => (
                                 <option key={doctor.id} value={doctor.id}>
-                                  {doctor.name} - {doctor.department}
+                                  {doctor.name} - {doctor.department || doctor.specialization || ''}
                                 </option>
                               ))}
                             </select>
+                            <small className="text-muted">{filteredDoctors.length} doctor(s) shown</small>
                           </div>
                           <div className="col-md-6">
                             <label className="form-label">Appointment Date <span className="text-danger">*</span></label>
@@ -1663,7 +1694,13 @@ export default function Staffpage() {
                             />
                           </div>
                           <div className="col-12">
-                            <button type="submit" className="btn btn-primary">
+                            <button 
+                              type="submit" 
+                              className="btn btn-primary"
+                              onClick={(e) => {
+                                console.log('Button clicked!');
+                              }}
+                            >
                               Create Appointment
                             </button>
                           </div>
@@ -1675,7 +1712,7 @@ export default function Staffpage() {
 
                 {/* Appointments List */}
                 <div className="row g-3">
-                  {dummyAppointments.map((appointment) => (
+                  {appointments.map((appointment) => (
                     <div key={appointment.id} className="col-12 col-md-6 col-lg-4">
                       <div className="card shadow-sm h-100 d-flex flex-column">
                         <div className="card-body flex-grow-1">
@@ -1730,7 +1767,7 @@ export default function Staffpage() {
                   ))}
                 </div>
 
-                {dummyAppointments.length === 0 && (
+                {appointments.length === 0 && (
                   <div className="alert alert-info">
                     No appointments scheduled.
                   </div>
@@ -1761,7 +1798,7 @@ export default function Staffpage() {
                             required
                           >
                             <option value="">Select a completed appointment</option>
-                            {dummyAppointments
+                            {appointments
                               .filter(a => a.status === 'completed')
                               .map((appointment) => (
                                 <option key={appointment.id} value={appointment.id}>
@@ -1851,54 +1888,25 @@ export default function Staffpage() {
                     <div className="card-body">
                       <div className="row g-3">
                         <div className="col-md-6">
-                          <strong>Billed To (Patient ID):</strong> #{generatedBill.patientId}
+                          <strong>Bill ID:</strong> #{generatedBill.id}
                         </div>
                         <div className="col-md-6">
                           <strong>Status:</strong> 
-                          <span className="badge bg-warning text-dark ms-2">{generatedBill.status.toUpperCase()}</span>
+                          <span className="badge bg-warning text-dark ms-2">{(generatedBill.status || 'OPEN').toUpperCase()}</span>
                         </div>
                         <div className="col-md-6">
-                          <strong>Patient:</strong> {generatedBill.patientName}
+                          <strong>Patient ID:</strong> #{generatedBill.patient_id}
                         </div>
                         <div className="col-md-6">
-                          <strong>Doctor:</strong> {generatedBill.doctorName}
-                        </div>
-                        <div className="col-md-6">
-                          <strong>Appointment Date:</strong> {generatedBill.appointmentDate}
-                        </div>
-                        <div className="col-md-6">
-                          <strong>Bill Generated:</strong> {generatedBill.generatedDate}
-                        </div>
-                        <div className="col-md-12">
-                          <strong>Generated By:</strong> {generatedBill.generatedBy}
+                          <strong>Total Amount:</strong> 
+                          <span className="text-success fs-5 fw-bold">${parseFloat(generatedBill.total || 0).toFixed(2)}</span>
                         </div>
                         
-                        <div className="col-12">
-                          <hr />
-                          <h6>Cost Breakdown</h6>
-                        </div>
-                        
-                        <div className="col-12">
-                          <table className="table table-sm">
-                            <tbody>
-                              <tr>
-                                <td>Consultation Fee</td>
-                                <td className="text-end">${generatedBill.consultationFee.toFixed(2)}</td>
-                              </tr>
-                              <tr>
-                                <td>Medication Cost</td>
-                                <td className="text-end">${generatedBill.medicationCost.toFixed(2)}</td>
-                              </tr>
-                              <tr>
-                                <td>Lab Tests Cost</td>
-                                <td className="text-end">${generatedBill.labTestsCost.toFixed(2)}</td>
-                              </tr>
-                              <tr className="fw-bold border-top border-2">
-                                <td>TOTAL</td>
-                                <td className="text-end text-success fs-5">${generatedBill.totalAmount.toFixed(2)}</td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div className="col-12 mt-3">
+                          <div className="alert alert-success">
+                            <i className="bi bi-check-circle me-2"></i>
+                            Bill generated successfully! Bill ID: #{generatedBill.id}
+                          </div>
                         </div>
 
                         <div className="col-12">
@@ -1940,29 +1948,25 @@ export default function Staffpage() {
                             <div className="card-header bg-light d-flex justify-content-between align-items-center">
                               <h6 className="mb-0">Bill #{bill.id}</h6>
                               <span className={`badge ${bill.status === 'paid' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                {bill.status.toUpperCase()}
+                                {(bill.status || 'OPEN').toUpperCase()}
                               </span>
                             </div>
                             <div className="card-body">
                               <div className="mb-2">
                                 <small className="text-muted">Patient</small>
-                                <div className="fw-semibold">{bill.patientName}</div>
+                                <div className="fw-semibold">{bill.patientName || 'N/A'}</div>
                               </div>
                               <div className="mb-2">
-                                <small className="text-muted">Doctor</small>
-                                <div>{bill.doctorName}</div>
+                                <small className="text-muted">Patient ID</small>
+                                <div>#{bill.patient_id}</div>
                               </div>
                               <div className="mb-2">
-                                <small className="text-muted">Date</small>
-                                <div>{bill.appointmentDate}</div>
+                                <small className="text-muted">Generated Date</small>
+                                <div>{bill.generatedDate || 'N/A'}</div>
                               </div>
                               <div className="mb-2">
                                 <small className="text-muted">Total Amount</small>
-                                <div className="fs-5 fw-bold text-success">${bill.totalAmount.toFixed(2)}</div>
-                              </div>
-                              <div className="mb-2">
-                                <small className="text-muted">Generated By</small>
-                                <div className="small">{bill.generatedBy}</div>
+                                <div className="fs-5 fw-bold text-success">${parseFloat(bill.totalAmount || 0).toFixed(2)}</div>
                               </div>
                             </div>
                             <div className="card-footer bg-light d-flex justify-content-end gap-2">
@@ -1979,7 +1983,7 @@ export default function Staffpage() {
                       ))}
                     </div>
                   </div>
-                )}                {dummyAppointments.filter(a => a.status === 'completed').length === 0 && (
+                )}                {appointments.filter(a => a.status === 'completed').length === 0 && (
                   <div className="alert alert-warning">
                     No completed appointments available for billing.
                   </div>
