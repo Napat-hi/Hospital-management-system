@@ -1,5 +1,5 @@
 # Backend Integration Guide - Staff Page
-
+meme
 ## Quick Reference
 **File**: `src/pages/Staffpage.js` (1600+ lines)  
 **Features**: Patient Management, Appointment Management, Billing System  
@@ -51,6 +51,7 @@ GET    /api/doctors               - Fetch all doctors (for appointment creation)
 ```
 POST   /api/billing/generate      - Generate bill for completed appointment
 GET    /api/billing/:id           - Retrieve generated bill
+DELETE /api/billing/:id           - Delete a generated bill
 ```
 
 ### 2. Expected Data Structures
@@ -191,6 +192,7 @@ The following functions already have TODO comments with backend integration stru
 - `handleUpdateAppointment()` - Lines ~320
 - `handleDeleteAppointment()` - Lines ~355
 - `handleGenerateBill()` - Lines ~390
+- `handleDeleteBill()` - Lines ~425 (NEW)
 
 ## Backend Database Schema
 
@@ -401,6 +403,20 @@ DELETE /api/appointments/1
 }
 ```
 
+### DELETE /api/billing/:id
+**Request:**
+```
+DELETE /api/billing/1001
+```
+
+**Response:**
+```json
+{
+  "message": "Bill deleted successfully",
+  "deletedBillId": 1001
+}
+```
+
 ## Features Ready for Backend
 
 ### 1. Patient Management
@@ -431,6 +447,9 @@ DELETE /api/appointments/1
 - Display formatted bill with all details
 - Print bill functionality
 - Generate multiple bills
+- **View all generated bills** in card grid layout
+- **Delete bills** with confirmation dialog
+- Quick view and delete actions for each bill
 
 ## Testing Checklist
 - [ ] Backend API endpoints are running

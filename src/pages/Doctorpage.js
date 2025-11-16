@@ -52,11 +52,12 @@
  *    - handleViewPatient()           → GET /api/patients/:id
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
+import { doctorAPI } from "../api/doctorAPI";
 
 export default function Doctorpage() {
   const location = useLocation();
@@ -77,7 +78,12 @@ export default function Doctorpage() {
   const [showPatientResults, setShowPatientResults] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [completedAppointments, setCompletedAppointments] = useState([]);
+  const [patientSearchText, setPatientSearchText] = useState("");
+  
+  // ---- Backend data state ----
+  const [patients, setPatients] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // ---- เมนูซ้าย ----
   const menu = [
@@ -117,92 +123,54 @@ export default function Doctorpage() {
     navigate("/"); // กลับหน้าแรก/หน้า login
   };
 
-  // ---- Dummy patient data for testing ----
-  // TODO: Replace with API call to fetch real patients
-  // useEffect(() => {
-  //   const fetchPatients = async () => {
-  //     try {
-  //       const response = await fetch('http://your-backend-url/api/patients');
-  //       const data = await response.json();
-  //       setPatients(data);
-  //     } catch (error) {
-  //       console.error('Error fetching patients:', error);
-  //     }
-  //   };
-  //   fetchPatients();
-  // }, []);
-  const dummyPatients = [
-    { id: 1, first_name: "Alice", last_name: "Johnson", sex: "Female", dob: "1985-03-15", address: "123 Main St, Springfield" },
-    { id: 2, first_name: "Bob", last_name: "Smith", sex: "Male", dob: "1978-07-22", address: "456 Oak Ave, Riverside" },
-    { id: 3, first_name: "Carol", last_name: "Williams", sex: "Female", dob: "1990-11-30", address: "789 Pine Rd, Lakewood" },
-    { id: 4, first_name: "David", last_name: "Brown", sex: "Male", dob: "1965-05-18", address: "321 Elm St, Hillside" },
-    { id: 5, first_name: "Emma", last_name: "Davis", sex: "Female", dob: "2000-09-08", address: "654 Maple Dr, Greenfield" },
-  ];
+  // ============================================
+  // FETCH DATA FROM BACKEND
+  // ============================================
+  useEffect(() => {
+    loadPatients();
+    loadAppointments();
+  }, []);
 
-  // ---- Dummy appointments data for testing ----
-  // TODO: Replace with API call to fetch real appointments
-  // useEffect(() => {
-  //   const fetchAppointments = async () => {
-  //     try {
-  //       const response = await fetch('http://your-backend-url/api/appointments');
-  //       const data = await response.json();
-  //       setAppointments(data);
-  //     } catch (error) {
-  //       console.error('Error fetching appointments:', error);
-  //     }
-  //   };
-  //   fetchAppointments();
-  // }, []);
-  const dummyAppointments = [
-    { 
-      id: 1, 
-      patientName: "Alice Johnson", 
-      doctorName: "Dr. Sarah Brown", 
-      appointmentDate: "2025-11-05", 
-      appointmentTime: "09:00 AM", 
-      reason: "Annual physical examination and blood work" 
-    },
-    { 
-      id: 2, 
-      patientName: "Bob Smith", 
-      doctorName: "Dr. John Doe", 
-      appointmentDate: "2025-11-05", 
-      appointmentTime: "10:30 AM", 
-      reason: "Follow-up consultation for hypertension" 
-    },
-    { 
-      id: 3, 
-      patientName: "Carol Williams", 
-      doctorName: "Dr. Emily Davis", 
-      appointmentDate: "2025-11-06", 
-      appointmentTime: "02:00 PM", 
-      reason: "Prenatal checkup - 20 weeks" 
-    },
-    { 
-      id: 4, 
-      patientName: "David Brown", 
-      doctorName: "Dr. Lisa Anderson", 
-      appointmentDate: "2025-11-06", 
-      appointmentTime: "11:00 AM", 
-      reason: "Neurological assessment for recurring headaches" 
-    },
-    { 
-      id: 5, 
-      patientName: "Emma Davis", 
-      doctorName: "Dr. Jane Smith", 
-      appointmentDate: "2025-11-07", 
-      appointmentTime: "03:30 PM", 
-      reason: "Vaccination and routine pediatric checkup" 
-    },
-    { 
-      id: 6, 
-      patientName: "Alice Johnson", 
-      doctorName: "Dr. Sarah Brown", 
-      appointmentDate: "2025-11-08", 
-      appointmentTime: "01:00 PM", 
-      reason: "X-ray results discussion" 
-    },
-  ];
+  const loadPatients = async () => {
+    try {
+      setLoading(true);
+      const data = await doctorAPI.getPatients();
+      setPatients(data);
+    } catch (error) {
+      alert('Failed to load patients. Make sure backend is running!');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAppointments = async () => {
+    try {
+      setLoading(true);
+      const data = await doctorAPI.getAppointments();
+      setAppointments(data);
+    } catch (error) {
+      alert('Failed to load appointments. Make sure backend is running!');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Data is now loaded from backend (see useEffect above)
+  // No more dummy data needed!
+
+  // ---- Filtered patients based on search ----
+  const filteredPatients = useMemo(() => {
+    if (!patientSearchText.trim()) return patients;
+    
+    const searchLower = patientSearchText.toLowerCase();
+    return patients.filter(patient => 
+      patient.first_name?.toLowerCase().includes(searchLower) ||
+      patient.last_name?.toLowerCase().includes(searchLower) ||
+      `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchLower)
+    );
+  }, [patients, patientSearchText]);
 
   // ---- Handle patient search ----
   // TODO: Replace with actual backend search/filter
@@ -223,29 +191,18 @@ export default function Doctorpage() {
   };
 
   // ---- Handle patient selection ----
-  // TODO: Replace with backend API call to get full patient details
-  const handleViewPatient = () => {
+  const handleViewPatient = async () => {
     if (!selectedPatientId) {
       alert("Please select a patient to view");
       return;
     }
 
-    // TODO: Fetch patient details from backend
-    // const fetchPatientDetails = async () => {
-    //   try {
-    //     const response = await fetch(`http://your-backend-url/api/patients/${selectedPatientId}`);
-    //     const data = await response.json();
-    //     setSelectedPatient(data);
-    //   } catch (error) {
-    //     console.error('Error fetching patient details:', error);
-    //   }
-    // };
-    // fetchPatientDetails();
-
-    // Find the selected patient (temporary - using dummy data)
-    const patient = dummyPatients.find(p => p.id === parseInt(selectedPatientId));
-    if (patient) {
+    try {
+      const patient = await doctorAPI.getPatient(selectedPatientId);
       setSelectedPatient(patient);
+    } catch (error) {
+      alert('Failed to load patient details');
+      console.error(error);
     }
   };
 
@@ -256,19 +213,15 @@ export default function Doctorpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/appointments/${appointmentId}/complete`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' }
-      // });
-
-      // For now, add to completed list
-      setCompletedAppointments(prev => [...prev, appointmentId]);
+      await doctorAPI.completeAppointment(appointmentId);
       alert("Appointment marked as complete!");
       
+      // Reload appointments to show updated status
+      await loadAppointments();
+      
     } catch (error) {
-      console.error('Error completing appointment:', error);
       alert('Error marking appointment as complete. Please try again later.');
+      console.error(error);
     }
   };
 
@@ -279,19 +232,15 @@ export default function Doctorpage() {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`http://your-backend-url/api/appointments/${appointmentId}/uncomplete`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' }
-      // });
-
-      // Remove from completed list
-      setCompletedAppointments(prev => prev.filter(id => id !== appointmentId));
+      await doctorAPI.uncompleteAppointment(appointmentId);
       alert("Appointment unmarked as complete!");
       
+      // Reload appointments to show updated status
+      await loadAppointments();
+      
     } catch (error) {
-      console.error('Error unmarking appointment:', error);
       alert('Error unmarking appointment. Please try again later.');
+      console.error(error);
     }
   };
 
@@ -369,13 +318,13 @@ export default function Doctorpage() {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5 className="mb-0">Upcoming Appointments</h5>
                   <span className="badge bg-primary">
-                    {dummyAppointments.filter(a => !completedAppointments.includes(a.id)).length} Active
+                    {appointments.filter(a => a.status === 'scheduled').length} Active
                   </span>
                 </div>
                 
                 <div className="row g-3">
-                  {dummyAppointments
-                    .filter(appointment => !completedAppointments.includes(appointment.id))
+                  {appointments
+                    .filter(appointment => appointment.status === 'scheduled')
                     .map((appointment) => (
                       <div key={appointment.id} className="col-12 col-md-6 col-lg-4">
                         <div className="card shadow-sm h-100">
@@ -420,7 +369,7 @@ export default function Doctorpage() {
                     ))}
                 </div>
                 
-                {dummyAppointments.filter(a => !completedAppointments.includes(a.id)).length === 0 && (
+                {appointments.filter(a => a.status === 'scheduled').length === 0 && (
                   <div className="alert alert-info">
                     No upcoming appointments at this time.
                   </div>
@@ -436,16 +385,21 @@ export default function Doctorpage() {
                     <p className="text-muted mb-3">
                       Search for a patient to view their information
                     </p>
-                    <form className="row gy-2 gx-2">
+                    <form className="row gy-2 gx-2" onSubmit={(e) => { e.preventDefault(); handlePatientSearch(); }}>
                       <div className="col-md-8">
                         <label className="form-label">Patient Name Search</label>
-                        <input type="text" className="form-control" placeholder="Search patient by name..." />
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Search patient by name..." 
+                          value={patientSearchText}
+                          onChange={(e) => setPatientSearchText(e.target.value)}
+                        />
                       </div>
                       <div className="col-md-4 d-flex align-items-end">
                         <button 
-                          type="button" 
+                          type="submit" 
                           className="btn btn-outline-primary w-100"
-                          onClick={handlePatientSearch}
                         >
                           Search
                         </button>
@@ -457,7 +411,10 @@ export default function Doctorpage() {
                 {showPatientResults && !selectedPatient && (
                   <div className="card shadow-sm mt-3">
                     <div className="card-body">
-                      <h5 className="card-title mb-3">Search Results</h5>
+                      <h5 className="card-title mb-3">
+                        Search Results 
+                        <span className="badge bg-info ms-2">{filteredPatients.length} found</span>
+                      </h5>
                       <form className="row gy-2 gx-2">
                         <div className="col-md-8">
                           <label className="form-label">Select Patient</label>
@@ -467,7 +424,7 @@ export default function Doctorpage() {
                             onChange={(e) => setSelectedPatientId(e.target.value)}
                           >
                             <option value="">Select a patient to view</option>
-                            {dummyPatients.map((patient) => (
+                            {filteredPatients.map((patient) => (
                               <option key={patient.id} value={patient.id}>
                                 {patient.first_name} {patient.last_name} - DOB: {patient.dob}
                               </option>
@@ -564,13 +521,13 @@ export default function Doctorpage() {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5 className="mb-0">Appointments Marked as Completed</h5>
                   <span className="badge bg-success">
-                    {completedAppointments.length} Completed
+                    {appointments.filter(a => a.status === 'completed').length} Completed
                   </span>
                 </div>
                 
                 <div className="row g-3">
-                  {dummyAppointments
-                    .filter(appointment => completedAppointments.includes(appointment.id))
+                  {appointments
+                    .filter(appointment => appointment.status === 'completed')
                     .map((appointment) => (
                       <div key={appointment.id} className="col-12 col-md-6 col-lg-4">
                         <div className="card shadow-sm h-100">
@@ -623,7 +580,7 @@ export default function Doctorpage() {
                     ))}
                 </div>
                 
-                {completedAppointments.length === 0 && (
+                {appointments.filter(a => a.status === 'completed').length === 0 && (
                   <div className="alert alert-info">
                     No completed appointments yet.
                   </div>
