@@ -1,5 +1,5 @@
 // Database connection configuration
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 // Create connection pool (better than single connection)
@@ -24,5 +24,4 @@ pool.getConnection((err, connection) => {
   connection.release();
 });
 
-// Export promise-based pool for async/await
-module.exports = pool.promise();
+module.exports = pool;
