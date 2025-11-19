@@ -66,11 +66,14 @@ CREATE TABLE staff (
 ) ENGINE=InnoDB;
 
 CREATE TABLE bill (
-  bill_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
-  patient_id BIGINT,
-  status     ENUM('OPEN','CLOSED','PAID') DEFAULT 'OPEN',
-  total      VARBINARY(64),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  bill_id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+  patient_id        BIGINT,
+  consultation_fee  VARBINARY(64),
+  medication_cost   VARBINARY(64),
+  lab_tests_cost    VARBINARY(64),
+  status            ENUM('OPEN','CLOSED','PAID') DEFAULT 'OPEN',
+  total             VARBINARY(64),
+  created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 CREATE TABLE payment (
@@ -233,7 +236,23 @@ CREATE TRIGGER trg_bill_bi
 BEFORE INSERT ON bill
 FOR EACH ROW
 BEGIN
-  SET NEW.total = AES_ENCRYPT(NEW.total, get_enc_key());
+  -- Encrypt individual cost components
+  IF NEW.consultation_fee IS NOT NULL THEN
+    SET NEW.consultation_fee = AES_ENCRYPT(NEW.consultation_fee, get_enc_key());
+  END IF;
+  
+  IF NEW.medication_cost IS NOT NULL THEN
+    SET NEW.medication_cost = AES_ENCRYPT(NEW.medication_cost, get_enc_key());
+  END IF;
+  
+  IF NEW.lab_tests_cost IS NOT NULL THEN
+    SET NEW.lab_tests_cost = AES_ENCRYPT(NEW.lab_tests_cost, get_enc_key());
+  END IF;
+  
+  -- Encrypt total
+  IF NEW.total IS NOT NULL THEN
+    SET NEW.total = AES_ENCRYPT(NEW.total, get_enc_key());
+  END IF;
 END$$
 
 -- PAYMENT
@@ -287,6 +306,9 @@ CREATE OR REPLACE VIEW v_bill_decrypted AS
 SELECT
   bill_id,
   patient_id,
+  CAST(AES_DECRYPT(consultation_fee, get_enc_key()) AS DECIMAL(12,2)) AS consultation_fee,
+  CAST(AES_DECRYPT(medication_cost, get_enc_key()) AS DECIMAL(12,2)) AS medication_cost,
+  CAST(AES_DECRYPT(lab_tests_cost, get_enc_key()) AS DECIMAL(12,2)) AS lab_tests_cost,
   status,
   CAST(AES_DECRYPT(total, get_enc_key()) AS DECIMAL(12,2)) AS total,
   created_at

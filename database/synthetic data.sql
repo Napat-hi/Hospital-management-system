@@ -45,12 +45,12 @@ INSERT INTO staff (first_name, last_name, position, department, email, phone, hi
 -- =========================================================
 -- BILL (note: totals are quoted as strings for AES_ENCRYPT)
 -- =========================================================
-INSERT INTO bill (patient_id, status, total) VALUES
-(1, 'OPEN', '3500.00'),
-(2, 'PAID', '1200.00'),
-(3, 'OPEN', '2700.00'),
-(4, 'PAID', '5400.00'),
-(5, 'OPEN', '1800.00');
+INSERT INTO bill (patient_id, consultation_fee, medication_cost, lab_tests_cost, status, total) VALUES
+(1, '2000.00', '1000.00', '500.00', 'OPEN', '3500.00'),
+(2, '800.00', '300.00', '100.00', 'PAID', '1200.00'),
+(3, '1500.00', '800.00', '400.00', 'OPEN', '2700.00'),
+(4, '3000.00', '1500.00', '900.00', 'PAID', '5400.00'),
+(5, '1000.00', '600.00', '200.00', 'OPEN', '1800.00');
 
 -- =========================================================
 -- PAYMENT (amount quoted as strings)
