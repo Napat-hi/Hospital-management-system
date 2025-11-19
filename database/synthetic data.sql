@@ -36,13 +36,12 @@ INSERT INTO doctor (first_name, last_name, department, specialization, phone, em
 -- =========================================================
 -- STAFF
 -- =========================================================
-INSERT INTO staff (first_name, last_name, position, department, email, phone, hire_date, status) VALUES
-('Nattapong', 'Wilaikul', 'Cashier', 'Billing', 'nattapong@hms.com', '0812223344', '2021-01-15', 'ACTIVE'),
-('Chutima', 'Korn', 'Receptionist', 'Front Desk', 'chutima@hms.com', '0813334455', '2022-02-20', 'ACTIVE'),
-('Wirat', 'Thammasak', 'Nurse', 'Pediatrics', 'wirat@hms.com', '0824445566', '2019-06-12', 'ACTIVE'),
-('Somsri', 'Kaew', 'Technician', 'Radiology', 'somsri@hms.com', '0835556677', '2018-09-01', 'ACTIVE'),
-('Phudit', 'Saelee', 'Accountant', 'Finance', 'phudit@hms.com', '0846667788', '2017-04-18', 'ACTIVE');
-
+INSERT INTO staff (first_name, last_name, position, department, email, phone, hire_date) VALUES
+('Nattapong', 'Wilaikul', 'Cashier', 'Billing', 'nattapong@hms.com', '0812223344', '2021-01-15'),
+('Chutima', 'Korn', 'Receptionist', 'Front Desk', 'chutima@hms.com', '0813334455', '2022-02-20'),
+('Wirat', 'Thammasak', 'Nurse', 'Pediatrics', 'wirat@hms.com', '0824445566', '2019-06-12'),
+('Somsri', 'Kaew', 'Technician', 'Radiology', 'somsri@hms.com', '0835556677', '2018-09-01'),
+('Phudit', 'Saelee', 'Accountant', 'Finance', 'phudit@hms.com', '0846667788', '2017-04-18');
 -- =========================================================
 -- BILL (note: totals are quoted as strings for AES_ENCRYPT)
 -- =========================================================
