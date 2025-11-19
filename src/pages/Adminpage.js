@@ -94,17 +94,14 @@ useEffect(() => {
 
 
   // ---- UI state ----
-  const [view, setView] = useState("create"); // 'create' | 'add' | 'delete' | 'edit' | 'table'
+  const [view, setView] = useState("create"); // 'create' | 'table'
   const [sortKey, setSortKey] = useState("first_name");
   const [sortDir, setSortDir] = useState("asc");
   const [filterText, setFilterText] = useState("");
   const [role, setRole] = useState(""); // Track selected role for Create user page
-  const [showDeleteResults, setShowDeleteResults] = useState(false);
-  const [showEditResults, setShowEditResults] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(""); // For edit functionality
-  const [selectedDeleteUserId, setSelectedDeleteUserId] = useState(""); // For delete functionality
   const [showEditForm, setShowEditForm] = useState(false);
   const [editFormData, setEditFormData] = useState({
+    id: "",
     first_name: "",
     last_name: "",
     department: "",
@@ -124,8 +121,7 @@ useEffect(() => {
     specialization: "",
     phone: "",
     email: "",
-    position: "",
-    dob: ""
+    position: ""
   });
 
   // ---- Validation errors state ----
@@ -136,17 +132,27 @@ useEffect(() => {
     specialization: "",
     phone: "",
     email: "",
-    position: "",
-    dob: ""
+    position: ""
   });
 
   // ---- เมนูซ้าย ----
   const menu = [
-    { key: "create", label: "Create" },
-    { key: "disable", label: "Disable" },
-    { key: "edit", label: "Edit" },
-    { key: "table", label: "Users Table" },
+    { key: "create", label: "Create User" },
+    { key: "table", label: "Manage Users" },
   ];
+
+  // Handle menu item click
+  const handleMenuClick = (key) => {
+    setView(key);
+    // Re-fetch users when navigating to Users Table
+    if (key === "table") {
+      fetchUsers();
+    }
+    // Close edit form when switching views
+    if (key !== "table") {
+      setShowEditForm(false);
+    }
+  };
 
   // ---- ตาราง users (เหมือนหน้าอื่น) ----
   const filteredSortedList = useMemo(() => {
@@ -187,10 +193,21 @@ useEffect(() => {
     navigate("/");
   };
 
-  // ---- Generate username from first name and last name ----
+  // ---- Generate username from first name ----
+  // Format: firstname (lowercase)
+  // Example: "John Doe" -> "john"
+  const generateUsername = (firstName, lastName) => {
+    if (!firstName) return "";
+    
+    const firstLower = firstName.trim().toLowerCase();
+    
+    return firstLower;
+  };
+
+  // ---- Generate password from first name and last name ----
   // Format: firstname.first3letters_of_lastname
   // Example: "John Doe" -> "john.doe"
-  const generateUsername = (firstName, lastName) => {
+  const generatePassword = (firstName, lastName) => {
     if (!firstName || !lastName) return "";
     
     const firstLower = firstName.trim().toLowerCase();
@@ -198,17 +215,6 @@ useEffect(() => {
     const lastNamePrefix = lastLower.substring(0, 3);
     
     return `${firstLower}.${lastNamePrefix}`;
-  };
-
-  // ---- Generate password from date of birth ----
-  // Format: DDMMYYYY
-  // Example: "2004-10-17" -> "17102004"
-  const generatePassword = (dob) => {
-    if (!dob) return "";
-    
-    // dob format is "YYYY-MM-DD" from date input
-    const [year, month, day] = dob.split('-');
-    return `${day}${month}${year}`;
   };
 
   // ---- Validate email format ----
@@ -232,8 +238,7 @@ useEffect(() => {
       specialization: "",
       phone: "",
       email: "",
-      position: "",
-      dob: ""
+      position: ""
     };
     let isValid = true;
 
@@ -277,20 +282,6 @@ useEffect(() => {
     } else if (role === "Staff") {
       if (!formData.position) {
         errors.position = "Position is required for staff";
-        isValid = false;
-      }
-    }
-
-    // Date of Birth validation
-    if (!formData.dob) {
-      errors.dob = "Date of birth is required";
-      isValid = false;
-    } else {
-      const dob = new Date(formData.dob);
-      const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      if (age < 18 || age > 100) {
-        errors.dob = "Age must be between 18 and 100 years";
         isValid = false;
       }
     }
@@ -343,14 +334,15 @@ useEffect(() => {
 
     // Generate username and password
     const username = generateUsername(formData.first_name, formData.last_name);
-    const password = generatePassword(formData.dob);
+    const password = generatePassword(formData.first_name, formData.last_name);
 
     // Prepare data to send to backend
     const userData = {
       role: role,
       ...formData,
       username: username,
-      password: password
+      password: password,
+      dob: '2000-01-01' // Default dob for backend compatibility
     };
 
     console.log("Sending data to backend:", userData);
@@ -379,8 +371,7 @@ useEffect(() => {
           specialization: "",
           phone: "",
           email: "",
-          position: "",
-          dob: ""
+          position: ""
         });
         setFormErrors({
           first_name: "",
@@ -389,8 +380,7 @@ useEffect(() => {
           specialization: "",
           phone: "",
           email: "",
-          position: "",
-          dob: ""
+          position: ""
         });
         setRole("");
       } else {
@@ -403,82 +393,81 @@ useEffect(() => {
     }
   };
 
-  // ---- Handle search button clicks ----
-  const handleDeleteSearch = () => {
-    // TODO: Optionally filter results based on search input before displaying
-    setShowDeleteResults(true);
+  // ---- Handle edit user button click ----
+  const handleEditUser = (user) => {
+    console.log('Editing user:', user); // Debug log
+    console.log('Department value:', user.department);
+    console.log('Specialization value:', user.specialization);
+    console.log('Position value:', user.position);
+    console.log('Role value:', user.role);
+    
+    setEditFormData({
+      id: user.id,
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      department: user.department || "",
+      specialization: user.specialization || "",
+      phone: user.phone || "",
+      email: user.email || "",
+      position: user.position || "",
+      role: user.role || "",
+      dob: user.dob || ""
+    });
+    setShowEditForm(true);
+    // Scroll to top to see the edit form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleEditSearch = () => {
-    // TODO: Optionally filter results based on search input before displaying
-    setShowEditResults(true);
+  // ---- Handle cancel edit ----
+  const handleCancelEdit = () => {
+    setShowEditForm(false);
+    setEditFormData({
+      id: "",
+      first_name: "",
+      last_name: "",
+      department: "",
+      specialization: "",
+      phone: "",
+      email: "",
+      position: "",
+      role: "",
+      dob: ""
+    });
   };
 
-  // ---- Handle disable user (soft delete) ----
-  // TODO: Replace with actual backend endpoint
-  const handleDisableUser = async (userId) => {
-    if (!userId) {
-      alert("Please select a user to disable");
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to disable this user?")) {
+  // ---- Handle delete user (permanent deletion) ----
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to permanently delete ${user.first_name} ${user.last_name}? This action cannot be undone.`)) {
       return;
     }
 
     try {
-      // TODO: Replace with actual API endpoint
-      // This is a PATCH request to disable (soft delete), NOT a DELETE request
-      const response = await fetch(`http://localhost:5001/api/users/${userId}/disable`, {
+      const response = await fetch(`http://localhost:5001/api/users/${user.id}/disable`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'disabled' })
+        body: JSON.stringify({ role: user.role })
       });
 
       if (response.ok) {
-        alert("User disabled successfully!");
+        alert("User deleted successfully!");
         await fetchUsers();
-        // Reset state
-        setShowDeleteResults(false);
+        // Close edit form if the deleted user was being edited
+        if (showEditForm && editFormData.id === user.id) {
+          setShowEditForm(false);
+        }
       } else {
         const errorData = await response.json();
-        alert(`Failed to disable user: ${errorData.message || 'Unknown error'}`);
+        alert(`Failed to delete user: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error disabling user:', error);
+      console.error('Error deleting user:', error);
       alert('Error connecting to server. Please try again later.');
     }
   };
 
-  // ---- Handle edit user selection and form display ----
-  const handleEditUserClick = (userId) => {
-    const userIdToEdit = userId || selectedUserId;
-    
-    if (!userIdToEdit) {
-      alert("Please select a user to edit");
-      return;
-    }
 
-    // Find the selected user
-    const user = listData.find(u => u.id === parseInt(userIdToEdit));
-    if (user) {
-      // Populate edit form with user data
-      setEditFormData({
-        first_name: user.first_name || "",
-        last_name: user.last_name || "",
-        department: user.department || "",
-        specialization: user.specialization || user.department || "",
-        phone: user.phone || "",
-        email: user.email || "",
-        position: user.position || "",
-        role: user.role || "",
-        dob: user.dob || ""
-      });
-      setShowEditForm(true);
-    }
-  };
 
   // ---- Handle edit form input changes ----
   const handleEditInputChange = (e) => {
@@ -490,22 +479,17 @@ useEffect(() => {
   };
 
   // ---- Handle edit form submission ----
-  // TODO: Replace with actual backend endpoint
   const handleUpdateUser = async (e) => {
     e.preventDefault();
     
-    // Prepare updated data for backend
-    // Expected format: { id, role, fullName, department, specialization/position, phone, email }
     const updatedData = {
-      id: selectedUserId,
       ...editFormData
     };
 
     console.log("Updating user:", updatedData);
 
     try {
-      // TODO: Replace with actual API endpoint - use PUT or PATCH method
-      const response = await fetch(`http://localhost:5001/api/users/${selectedUserId}`, {
+      const response = await fetch(`http://localhost:5001/api/users/${editFormData.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -520,20 +504,7 @@ useEffect(() => {
         console.log('Server response:', result);
 
         // Reset form state after successful update
-        setShowEditForm(false);
-        setShowEditResults(false);
-        setSelectedUserId("");
-        setEditFormData({
-          first_name: "",
-          last_name: "",
-          department: "",
-          specialization: "",
-          phone: "",
-          email: "",
-          position: "",
-          role: "",
-          dob: ""
-        });
+        handleCancelEdit();
       } else {
         const errorData = await response.json();
         alert(`Failed to update user: ${errorData.message || 'Unknown error'}`);
@@ -589,7 +560,7 @@ useEffect(() => {
                   <ListGroup.Item
                     key={item.key}
                     action
-                    onClick={() => setView(item.key)}
+                    onClick={() => handleMenuClick(item.key)}
                     className={`menu-item ${view === item.key ? "active" : ""}`}
                   >
                     {item.label}
@@ -641,8 +612,8 @@ useEffect(() => {
                     {(role === 'Doctor' || role === 'Staff') && (
                       <>
                         <div className="row">
-                          <div className="col-md-4">
-                            <label className="form-label mt-4">First Name <span className="text-danger">*</span></label>
+                          <div className="col-md-6">
+                            <label className="form-label mt-3">First Name <span className="text-danger">*</span></label>
                             <input
                               type="text"
                               name="first_name"
@@ -655,8 +626,8 @@ useEffect(() => {
                               <div className="invalid-feedback">{formErrors.first_name}</div>
                             )}
                           </div>
-                          <div className="col-md-4">
-                            <label className="form-label mt-4">Last Name <span className="text-danger">*</span></label>
+                          <div className="col-md-6">
+                            <label className="form-label mt-3">Last Name <span className="text-danger">*</span></label>
                             <input
                               type="text"
                               name="last_name"
@@ -669,8 +640,10 @@ useEffect(() => {
                               <div className="invalid-feedback">{formErrors.last_name}</div>
                             )}
                           </div>
-                          <div className="col-md-4">
-                            <label className="form-label mt-4">Department <span className="text-danger">*</span></label>
+                        </div>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <label className="form-label mt-3">Department <span className="text-danger">*</span></label>
                             <select
                               name="department"
                               className={`form-select ${formErrors.department ? 'is-invalid' : ''}`}
@@ -688,11 +661,11 @@ useEffect(() => {
                               <div className="invalid-feedback">{formErrors.department}</div>
                             )}
                           </div>
-                          <div className="col-4">
+                          <div className="col-md-6">
                             {/* Conditional field: Specialization for Doctor, Position for Staff */}
                             {role === 'Doctor' ? (
                               <>
-                                <label className="form-label mt-4">Specialization <span className="text-danger">*</span></label>
+                                <label className="form-label mt-3">Specialization <span className="text-danger">*</span></label>
                                 <select
                                   name="specialization"
                                   className={`form-select ${formErrors.specialization ? 'is-invalid' : ''}`}
@@ -712,7 +685,7 @@ useEffect(() => {
                               </>
                             ) : (
                               <>
-                                <label className="form-label mt-4">Position <span className="text-danger">*</span></label>
+                                <label className="form-label mt-3">Position <span className="text-danger">*</span></label>
                                 <select
                                   name="position"
                                   className={`form-select ${formErrors.position ? 'is-invalid' : ''}`}
@@ -739,37 +712,8 @@ useEffect(() => {
                           </div>
                         </div>
                         <div className="row">
-                          <div className="col-4">
-                            <label className="form-label mt-2">Date of Birth <span className="text-danger">*</span></label>
-                            <input
-                              type="date"
-                              name="dob"
-                              className={`form-control ${formErrors.dob ? 'is-invalid' : ''}`}
-                              value={formData.dob || ""}
-                              onChange={handleInputChange}
-                              max={new Date().toISOString().split('T')[0]}
-                            />
-                            <small className="text-muted">Used to generate login password</small>
-                            {formErrors.dob && (
-                              <div className="invalid-feedback">{formErrors.dob}</div>
-                            )}
-                          </div>
-                          <div className="col-4">
-                            <label className="form-label mt-2">Phone Number <span className="text-danger">*</span></label>
-                            <input
-                              type="tel"
-                              name="phone"
-                              className={`form-control ${formErrors.phone ? 'is-invalid' : ''}`}
-                              placeholder="e.g. 123-456-7890"
-                              value={formData.phone || ""}
-                              onChange={handleInputChange}
-                            />
-                            {formErrors.phone && (
-                              <div className="invalid-feedback">{formErrors.phone}</div>
-                            )}
-                          </div>
-                          <div className="col-4">
-                            <label className="form-label mt-2">Email Address <span className="text-danger">*</span></label>
+                          <div className="col-md-6">
+                            <label className="form-label mt-3">Email Address <span className="text-danger">*</span></label>
                             <input
                               type="email"
                               name="email"
@@ -780,6 +724,20 @@ useEffect(() => {
                             />
                             {formErrors.email && (
                               <div className="invalid-feedback">{formErrors.email}</div>
+                            )}
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label mt-3">Phone Number <span className="text-danger">*</span></label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              className={`form-control ${formErrors.phone ? 'is-invalid' : ''}`}
+                              placeholder="e.g. 123-456-7890"
+                              value={formData.phone || ""}
+                              onChange={handleInputChange}
+                            />
+                            {formErrors.phone && (
+                              <div className="invalid-feedback">{formErrors.phone}</div>
                             )}
                           </div>
                         </div>
@@ -808,303 +766,160 @@ useEffect(() => {
               </div>
             )}
 
-            {/* TODO rename to Disable */}
-            {view === "disable" && (
+            {view === "table" && (
               <>
-                <div className="card shadow-sm">
-                  <div className="card-body">
-                    <h5 className="card-title mb-3">Disable User</h5>
-                    <p className="text-muted mb-3">
-
-                    </p>
-                    <form className="row gy-2 gx-2">
-                      <div className="col-md-8">
-                        <label className="form-label">Full name Search</label>
-                        <input type="text" className="form-control" placeholder="Search user to disable..." />
-                      </div>
-                      <div className="col-md-4 d-flex align-items-end">
-                        <button 
-                          type="button" 
-                          className="btn btn-outline-primary w-100"
-                          onClick={handleDeleteSearch}
-                        >
-                          Search
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-                
-                {/* Show results only after search */}
-                {showDeleteResults && (
-                  <div className="card shadow-sm mt-3">
+                {showEditForm && (
+                  <div className="card shadow-sm mb-3">
                     <div className="card-body">
-                      <h5 className="card-title mb-3">Search Results</h5>
-                      <form className="row gy-2 gx-2">
-                        <div className="col-md-8">
-                          <label className="form-label">Select User</label>
-                          <select 
-                            className="form-select"
-                            value={selectedDeleteUserId}
-                            onChange={(e) => setSelectedDeleteUserId(e.target.value)}
-                          >
-                            <option value="">Select a user to disable</option>
-                            {listData.map((user) => (
-                              <option key={user.id} value={user.id}>
-                                {user.first_name} {user.last_name} - {user.email} ({user.role})
-                              </option>
-                            ))}
-                          </select>
+                      <h5 className="card-title mb-3">Edit User Information</h5>
+                      <form onSubmit={handleUpdateUser}>
+                        <div className="row">
+                          <div className="col-md-12 mb-3">
+                            <label className="form-label">Role</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              value={editFormData.role}
+                              disabled
+                            />
+                          </div>
                         </div>
-                        <div className="col-md-4 d-flex align-items-end">
-                          <button 
-                            type="button" 
-                            className="btn btn-danger w-100"
-                            onClick={() => handleDisableUser(selectedDeleteUserId)}
+
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">First Name <span className="text-danger">*</span></label>
+                            <input
+                              type="text"
+                              name="first_name"
+                              className="form-control"
+                              placeholder="e.g. John"
+                              value={editFormData.first_name}
+                              onChange={handleEditInputChange}
+                              required
+                            />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Last Name <span className="text-danger">*</span></label>
+                            <input
+                              type="text"
+                              name="last_name"
+                              className="form-control"
+                              placeholder="e.g. Doe"
+                              value={editFormData.last_name}
+                              onChange={handleEditInputChange}
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Department <span className="text-danger">*</span></label>
+                            <select
+                              name="department"
+                              className="form-select"
+                              value={editFormData.department}
+                              onChange={handleEditInputChange}
+                              required
+                            >
+                              <option value="">Select Department</option>
+                              <option value="General Medicine">General Medicine</option>
+                              <option value="General Surgery">General Surgery</option>
+                              <option value="Pediatrics">Pediatrics</option>
+                              <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                              <option value="Emergency Medicine">Emergency Medicine</option>
+                            </select>
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            {editFormData.role === 'Doctor' ? (
+                              <>
+                                <label className="form-label">Specialization</label>
+                                <select
+                                  name="specialization"
+                                  className="form-select"
+                                  value={editFormData.specialization || ""}
+                                  onChange={handleEditInputChange}
+                                >
+                                  <option value="">Select Specialization</option>
+                                  <option value="Cardiology">Cardiology</option>
+                                  <option value="Neurology">Neurology</option>
+                                  <option value="Orthopedics">Orthopedics</option>
+                                  <option value="Pediatrics">Pediatrics</option>
+                                  <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                                </select>
+                              </>
+                            ) : (
+                              <>
+                                <label className="form-label">Position</label>
+                                <select
+                                  name="position"
+                                  className="form-select"
+                                  value={editFormData.position || ""}
+                                  onChange={handleEditInputChange}
+                                >
+                                  <option value="">Select Position</option>
+                                  <option value="Nurse">Nurse</option>
+                                  <option value="Pharmacist">Pharmacist</option>
+                                  <option value="Medical Assistant">Medical Assistant</option>
+                                  <option value="Laboratory Technician">Laboratory Technician</option>
+                                  <option value="Radiologic Technologist">Radiologic Technologist</option>
+                                  <option value="Nurse Practitioner">Nurse Practitioner</option>
+                                  <option value="Physician Assistant">Physician Assistant</option>
+                                  <option value="Therapist">Therapist</option>
+                                  <option value="Paramedic">Paramedic</option>
+                                  <option value="Hospital Administrator">Hospital Administrator</option>
+                                </select>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Email Address</label>
+                            <input
+                              type="email"
+                              name="email"
+                              className="form-control"
+                              placeholder="e.g. johndoe@example.com"
+                              value={editFormData.email || ""}
+                              onChange={handleEditInputChange}
+                            />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label className="form-label">Phone Number</label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              className="form-control"
+                              placeholder="e.g. 123-456-7890"
+                              value={editFormData.phone || ""}
+                              onChange={handleEditInputChange}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="d-flex gap-2 justify-content-end">
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={handleCancelEdit}
                           >
-                            Disable
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                          >
+                            Update User
                           </button>
                         </div>
                       </form>
                     </div>
                   </div>
                 )}
-              </>
-            )}
 
-            {view === "edit" && (
-              <>
                 <div className="card shadow-sm">
-                  <div className="card-body">
-                    <h5 className="card-title mb-3">Edit User Data</h5>
-                    <p className="text-muted mb-3">
-
-                    </p>
-                    <form className="row gy-2 gx-2">
-                      <div className="col-md-8">
-                        <label className="form-label">Full name Search</label>
-                        <input type="text" className="form-control" placeholder="Search user to edit..." />
-                      </div>
-                      <div className="col-md-4 d-flex align-items-end">
-                        <button 
-                          type="button" 
-                          className="btn btn-outline-primary w-100"
-                          onClick={handleEditSearch}
-                        >
-                          Search
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-                
-                {/* Show results only after search */}
-                {showEditResults && (
-                  <div className="card shadow-sm mt-3">
-                    <div className="card-body">
-                      <h5 className="card-title mb-3">Search Results</h5>
-                      <form className="row gy-2 gx-2">
-                        <div className="col-md-12">
-                          <label className="form-label">Select User to Edit</label>
-                          <select 
-                            className="form-select"
-                            value={selectedUserId}
-                            onChange={(e) => {
-                              const userId = e.target.value;
-                              setSelectedUserId(userId);
-                              if (userId) {
-                                handleEditUserClick(userId);
-                              }
-                            }}
-                          >
-                            <option value="">Select a user to edit</option>
-                            {listData.map((user) => (
-                              <option key={user.id} value={user.id}>
-                                {user.first_name} {user.last_name} - {user.email} ({user.role})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show edit form after selecting user */}
-                {showEditForm && (
-                  <div className="card shadow-sm mt-3">
-                    <div className="card-body">
-                      <h5 className="card-title mb-3">Edit User Information</h5>
-                      <p className="text-muted mb-3">
-                        Update the user details below.
-                      </p>
-                      <form className="row gy-2 gx-2">
-                        <div className="col-md-12">
-                          <label className="form-label">Role</label>
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            value={editFormData.role}
-                            disabled
-                          />
-                        </div>
-
-                        {/* Form Fields */}
-                        <>
-                          <div className="row">
-                            <div className="col-md-4">
-                              <label className="form-label mt-4">First Name</label>
-                              <input
-                                type="text"
-                                name="first_name"
-                                className="form-control"
-                                placeholder="e.g. John"
-                                value={editFormData.first_name}
-                                onChange={handleEditInputChange}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label mt-4">Last Name</label>
-                              <input
-                                type="text"
-                                name="last_name"
-                                className="form-control"
-                                placeholder="e.g. Doe"
-                                value={editFormData.last_name}
-                                onChange={handleEditInputChange}
-                              />
-                            </div>
-                            <div className="col-md-4">
-                              <label className="form-label mt-4">Department</label>
-                              <select
-                                name="department"
-                                className="form-select"
-                                value={editFormData.department}
-                                onChange={handleEditInputChange}
-                              >
-                                <option value="">Select Department</option>
-                                <option value="General Medicine">General Medicine</option>
-                                <option value="General Surgery">General Surgery</option>
-                                <option value="Pediatrics">Pediatrics</option>
-                                <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
-                                <option value="Emergency Medicine">Emergency Medicine</option>
-                              </select>
-                            </div>
-                            <div className="col-4">
-                              {/* Conditional field: Specialization for Doctor, Position for Staff */}
-                              {editFormData.role === 'Doctor' ? (
-                                <>
-                                  <label className="form-label mt-4">Specialization</label>
-                                  <select
-                                    name="specialization"
-                                    className="form-select"
-                                    value={editFormData.specialization || ""}
-                                    onChange={handleEditInputChange}
-                                  >
-                                    <option value="">Select Specialization</option>
-                                    <option value="Cardiology">Cardiology</option>
-                                    <option value="Neurology">Neurology</option>
-                                    <option value="Orthopedics">Orthopedics</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
-                                  </select>
-                                </>
-                              ) : (
-                                <>
-                                  <label className="form-label mt-4">Position</label>
-                                  <select
-                                    name="position"
-                                    className="form-select"
-                                    value={editFormData.position || ""}
-                                    onChange={handleEditInputChange}
-                                  >
-                                    <option value="">Select Position</option>
-                                    <option value="Nurse">Nurse</option>
-                                    <option value="Pharmacist">Pharmacist</option>
-                                    <option value="Medical Assistant">Medical Assistant</option>
-                                    <option value="Laboratory Technician">Laboratory Technician</option>
-                                    <option value="Radiologic Technologist">Radiologic Technologist</option>
-                                    <option value="Nurse Practitioner">Nurse Practitioner</option>
-                                    <option value="Physician Assistant">Physician Assistant</option>
-                                    <option value="Therapist">Therapist</option>
-                                    <option value="Paramedic">Paramedic</option>
-                                    <option value="Hospital Administrator">Hospital Administrator</option>
-                                  </select>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="row">
-                            <div className="col-4">
-                              <label className="form-label mt-2">Date of Birth</label>
-                              <input
-                                type="date"
-                                name="dob"
-                                className="form-control"
-                                value={editFormData.dob || ""}
-                                onChange={handleEditInputChange}
-                              />
-                            </div>
-                            <div className="col-4">
-                              <label className="form-label mt-2">Phone Number</label>
-                              <input
-                                type="text"
-                                name="phone"
-                                className="form-control"
-                                placeholder="e.g. 123-456-7890"
-                                value={editFormData.phone || ""}
-                                onChange={handleEditInputChange}
-                              />
-                            </div>
-                            <div className="col-4">
-                              <label className="form-label mt-2">Email Address</label>
-                              <input
-                                type="email"
-                                name="email"
-                                className="form-control"
-                                placeholder="e.g. johndoe@example.com"
-                                value={editFormData.email || ""}
-                                onChange={handleEditInputChange}
-                              />
-                            </div>
-                          </div>
-                        </>
-
-                        {/* Update Button */}
-                        <div className="row mt-4">
-                          <div className="col-2"></div>
-                          <div className="col-4">
-                            <button
-                              type="button"
-                              className="btn btn-secondary w-100"
-                              onClick={() => {
-                                setShowEditForm(false);
-                                setSelectedUserId("");
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                          <div className="col-4">
-                            <button
-                              type="submit"
-                              className="btn btn-warning w-100"
-                              onClick={handleUpdateUser}
-                            >
-                              Update
-                            </button>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {view === "table" && (
-              <div className="card shadow-sm">
                 <div className="card-body">
                   <div className="d-flex flex-wrap gap-2 mb-3">
                     <input
@@ -1134,8 +949,10 @@ useEffect(() => {
                             Role {sortKey === "role" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                           </th>
                           <th role="button" onClick={() => toggleSort("department")}>
-                            Department/Position {sortKey === "department" ? (sortDir === "asc" ? "▲" : "▼") : ""}
+                            Department {sortKey === "department" ? (sortDir === "asc" ? "▲" : "▼") : ""}
                           </th>
+                          <th>Specialization/Position</th>
+                          <th className="text-center" style={{ width: "180px" }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1145,7 +962,24 @@ useEffect(() => {
                             <td>{u.last_name}</td>
                             <td>{u.email}</td>
                             <td>{u.role}</td>
-                            <td>{u.role === 'Doctor' ? u.department : u.position}</td>
+                            <td>{u.department}</td>
+                            <td>{u.role === 'Doctor' ? u.specialization : u.position}</td>
+                            <td className="text-center">
+                              <button
+                                className="btn btn-sm btn-warning me-2"
+                                onClick={() => handleEditUser(u)}
+                                title="Edit user"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="btn btn-sm btn-danger"
+                                onClick={() => handleDeleteUser(u)}
+                                title="Delete user"
+                              >
+                                Delete
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1157,6 +991,7 @@ useEffect(() => {
                   </div>
                 </div>
               </div>
+              </>
             )}
 
           </main>
