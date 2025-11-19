@@ -1,11 +1,19 @@
-const express = require('express');
-const cors = require('cors');
-const db = require('./config/database');
+const express = require("express");
+const cors = require("cors");
+const db = require("./config/database");
+const authRouter = require("./auth");
+const userRouter = require("./user"); // ✅ ADD THIS
+require("dotenv").config();
+
 const app = express();
 
+// middleware
 app.use(cors());
 app.use(express.json());
 
+// ✅ Mount routers
+app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter); // ✅ ADD THIS LINE
 
 // ============================================
 // DOCTOR PAGE DATA - Now from HMS Database
@@ -324,10 +332,36 @@ app.get('/api/patients', async (req, res) => {
   }
 });
 
+app.get("/api/patients/search", async (req, res) => {
+  try {
+    const term = req.query.q || "";
+
+    const [rows] = await db.query(`
+      SELECT 
+        patient_id AS id,
+        CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR) AS first_name,
+        CAST(AES_DECRYPT(last_name, get_enc_key()) AS CHAR) AS last_name
+      FROM patient
+      WHERE CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR) LIKE ? 
+         OR CAST(AES_DECRYPT(last_name, get_enc_key()) AS CHAR) LIKE ?
+    `, [`%${term}%`, `%${term}%`]);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error searching patients:", error);
+    res.status(500).json({ error: "Failed to search patients" });
+  }
+});
+
 // 2. GET patient by ID
 app.get('/api/patients/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id, 10);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid patient ID' });
+    }
+
     const [rows] = await db.query(`
       SELECT 
         patient_id as id,
@@ -342,11 +376,11 @@ app.get('/api/patients/:id', async (req, res) => {
       FROM patient
       WHERE patient_id = ?
     `, [id]);
-    
+
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Patient not found' });
     }
-    
+
     res.json(rows[0]);
   } catch (error) {
     console.error('Error fetching patient:', error);
@@ -465,64 +499,95 @@ app.patch('/api/appointments/:id/uncomplete', async (req, res) => {
 // ============================================
 
 // 7. POST - Create new patient
-app.post('/api/patients', async (req, res) => {
+
+const crypto = require("crypto");
+
+app.post("/api/patients", async (req, res) => {
   try {
-    const { first_name, last_name, dob, sex, phone, email, address, emergency_contact } = req.body;
-    
-    // Validation
-    if (!first_name || !last_name || !dob || !sex) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    const {
+      first_name,
+      last_name,
+      dob,
+      sex,
+      phone,
+      email,
+      address,
+      emergency_contact
+    } = req.body;
+
+    const sanitize = (str) => typeof str === "string" ? str.trim() : "";
+
+    const firstName = sanitize(first_name);
+    const lastName = sanitize(last_name);
+    const dobSanitized = sanitize(dob);
+    const sexSanitized = sanitize(sex);
+    const phoneSanitized = sanitize(phone);
+    const emailSanitized = sanitize(email);
+    const addressSanitized = sanitize(address);
+    const emergencyContactSanitized = sanitize(emergency_contact);
+
+    console.log("Incoming req.body:", req.body);
+    console.log("Sanitized values:", {
+    firstName,
+    lastName,
+    dobSanitized,
+    sexSanitized,
+    phoneSanitized,
+    emailSanitized,
+    addressSanitized,
+    emergencyContactSanitized
+    });
+
+    const emailHash = crypto.createHash("sha256").update(emailSanitized).digest("hex");
+
+    if (!firstName || !lastName || !dobSanitized || !sexSanitized) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
-    
+
     const [result] = await db.query(`
-      INSERT INTO patient (first_name, last_name, dob, sex, phone, email, address, emergency_contact)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [first_name, last_name, dob, sex, phone || null, email || null, address || null, emergency_contact || null]);
-    
+      INSERT INTO patient (
+        first_name, last_name, dob, sex, phone, email, address, emergency_contact, email_hash
+      )
+      VALUES (
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?,
+        ?
+      )
+    `, [
+      firstName,
+      lastName,
+      dobSanitized,
+      sexSanitized,
+      phoneSanitized || "",
+      emailSanitized || "",
+      addressSanitized || "",
+      emergencyContactSanitized || "",
+      emailHash
+    ]);
+
+    console.log("Inserted patient ID:", result.insertId);
+
     res.status(201).json({
-      message: 'Patient created successfully',
+      message: "Patient created successfully",
       patientId: result.insertId
     });
   } catch (error) {
-    console.error('Error creating patient:', error);
-    res.status(500).json({ error: 'Failed to create patient' });
-  }
-});
-
-// 8. PUT - Update patient information
-app.put('/api/patients/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { first_name, last_name, dob, sex, phone, email, address, emergency_contact } = req.body;
-    
-    await db.query(`
-      UPDATE patient 
-      SET first_name = AES_ENCRYPT(?, get_enc_key()),
-          last_name = AES_ENCRYPT(?, get_enc_key()),
-          dob = AES_ENCRYPT(?, get_enc_key()),
-          sex = AES_ENCRYPT(?, get_enc_key()),
-          phone = AES_ENCRYPT(?, get_enc_key()),
-          email = AES_ENCRYPT(?, get_enc_key()),
-          address = AES_ENCRYPT(?, get_enc_key()),
-          emergency_contact = AES_ENCRYPT(?, get_enc_key())
-      WHERE patient_id = ?
-    `, [first_name, last_name, dob, sex, phone || '', email || '', address || '', emergency_contact || '', id]);
-    
-    res.json({
-      message: 'Patient updated successfully',
-      patientId: id
-    });
-  } catch (error) {
-    console.error('Error updating patient:', error);
-    res.status(500).json({ error: 'Failed to update patient' });
+    console.error("Error creating patient:", error);
+    res.status(500).json({ error: "Failed to create patient" });
   }
 });
 
 // 9. POST - Create new appointment
 app.post('/api/appointments', async (req, res) => {
+      console.log(req);
   try {
     const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
-    
     // Validation
     if (!patient_id || !doctor_id || !appointment_date || !appointment_time) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -770,17 +835,190 @@ app.delete('/api/bills/:id', async (req, res) => {
   }
 });
 
+// GET all staff
+app.get('/api/staff', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        staff_id as id,
+        first_name,
+        last_name,
+        position,
+        department,
+        email
+      FROM staff
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+});
+
+// GET staff by ID
+app.get('/api/staff/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [rows] = await db.query("SELECT * FROM staff WHERE staff_id = ?", [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+});
+
+// POST - Create new staff
+app.post('/api/staff', async (req, res) => {
+  try {
+    const { first_name, last_name, position, department, email } = req.body;
+    const [result] = await db.query(
+      "INSERT INTO staff (first_name, last_name, position, department, email) VALUES (?, ?, ?, ?, ?)",
+      [first_name, last_name, position, department, email]
+    );
+    res.status(201).json({ id: result.insertId, message: 'Staff created successfully' });
+  } catch (error) {
+    console.error('Error creating staff:', error);
+    res.status(500).json({ error: 'Failed to create staff' });
+  }
+});
+
+// PUT - Update staff
+app.put('/api/staff/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { first_name, last_name, position, department, email } = req.body;
+    await db.query(
+      "UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=? WHERE staff_id=?",
+      [first_name, last_name, position, department, email, id]
+    );
+    res.json({ message: 'Staff updated successfully', id });
+  } catch (error) {
+    console.error('Error updating staff:', error);
+    res.status(500).json({ error: 'Failed to update staff' });
+  }
+});
+
+// PATCH - Disable staff
+app.patch('/api/staff/:id/disable', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [result] = await db.query(
+      "UPDATE staff SET status='INACTIVE' WHERE staff_id=?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    res.json({ message: 'Staff disabled successfully', id });
+  } catch (error) {
+    console.error('Error disabling staff:', error);
+    res.status(500).json({ error: 'Failed to disable staff' });
+  }
+});
+
+// GET all staff
+app.get('/api/staff', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        staff_id as id,
+        first_name,
+        last_name,
+        position,
+        department,
+        email
+      FROM staff
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+});
+
+// GET staff by ID
+app.get('/api/staff/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [rows] = await db.query("SELECT * FROM staff WHERE staff_id = ?", [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ error: 'Failed to fetch staff' });
+  }
+});
+
+// POST - Create new staff
+app.post('/api/staff', async (req, res) => {
+  try {
+    const { first_name, last_name, position, department, email } = req.body;
+    const [result] = await db.query(
+      "INSERT INTO staff (first_name, last_name, position, department, email) VALUES (?, ?, ?, ?, ?)",
+      [first_name, last_name, position, department, email]
+    );
+    res.status(201).json({ id: result.insertId, message: 'Staff created successfully' });
+  } catch (error) {
+    console.error('Error creating staff:', error);
+    res.status(500).json({ error: 'Failed to create staff' });
+  }
+});
+
+// PUT - Update staff
+app.put('/api/staff/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { first_name, last_name, position, department, email } = req.body;
+    await db.query(
+      "UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=? WHERE staff_id=?",
+      [first_name, last_name, position, department, email, id]
+    );
+    res.json({ message: 'Staff updated successfully', id });
+  } catch (error) {
+    console.error('Error updating staff:', error);
+    res.status(500).json({ error: 'Failed to update staff' });
+  }
+});
+
+// PATCH - Disable staff
+app.patch('/api/staff/:id/disable', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [result] = await db.query(
+      "UPDATE staff SET status='INACTIVE' WHERE staff_id=?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    res.json({ message: 'Staff disabled successfully', id });
+  } catch (error) {
+    console.error('Error disabling staff:', error);
+    res.status(500).json({ error: 'Failed to disable staff' });
+  }
+});
+
 const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
   console.log('');
   console.log('Available endpoints:');
-  console.log('  Admin Page:');
-  console.log('    - GET    /api/users              (get all doctors & staff)');
-  console.log('    - POST   /api/users              (create doctor or staff)');
-  console.log('    - PUT    /api/users/:id          (update doctor or staff)');
-  console.log('    - PATCH  /api/users/:id/disable  (delete doctor or staff)');
+  console.log('  Users:');
+  console.log('    - GET    /api/users');
   console.log('  Doctor Page:');
   console.log('    - GET    /api/patients');
   console.log('    - GET    /api/patients/:id');
