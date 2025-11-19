@@ -6,92 +6,69 @@ const authenticateToken = require("./middleware/authMiddleware");
 
 const router = express.Router();
 
-// Create MySQL connection pool
+// MySQL pool
 const pool = mysql.createPool({
   host: "localhost",
-  user: "root",        // update if needed
-  password: "root",    // update if needed
+  user: "root",
+  password: "root",
   database: "HMS",
-  port: 3306           // ensure matches your MAMP/MySQL port
+  port: 3306
 });
 
-// Utility: hash password with SHA-256
+// Hash password utility
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-// POST /login route
+// POST /login
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt:", username, password);
 
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password required" });
   }
 
-  try {
-    const [rows] = await pool.query(
-      `SELECT user_id, username, password, role
-       FROM user
-       WHERE username = ?`,
-      [username]
-    );
+  // Demo users
+  const demoUsers = {
+    admin: { password: "admin", role: "admin", firstName: "Admin", lastName: "User" },
+    staff: { password: "staff", role: "staff", firstName: "Staff", lastName: "User" },
+    doctor: { password: "doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
+  };
 
-    console.log("DB rows:", rows);
-
-    if (rows.length === 0) {
-      return res.status(401).json({ error: "Invalid username or password" });
-    }
-
-    const user = rows[0];
-    const hashedInput = hashPassword(password);
-    console.log("Hashed input:", hashedInput, "Stored:", user.password);
-
-    if (hashedInput !== user.password) {
-      return res.status(401).json({ error: "Invalid username or password" });
-    }
-
-    // ✅ Generate JWT
+  const demoUser = demoUsers[username];
+  if (demoUser && demoUser.password === password) {
     const token = jwt.sign(
-      { user_id: user.user_id, role: user.role },
+      { username, role: demoUser.role },
       process.env.JWT_SECRET || "your_secret_key",
       { expiresIn: "1h" }
     );
-
-    // ✅ Return token + user info
-    res.json({
-      token,
-      user_id: user.user_id,
-      username: user.username.toString(),
-      role: user.role
-    });
-  } catch (err) {
-    console.error("Login error:", err.message);
-    res.status(500).json({ error: "Server error", details: err.message });
-  }
-});
-
-// GET /staff/dashboard - Protected route
-router.get("/staff/dashboard", authenticateToken, (req, res) => {
-  res.json({
-    message: `Welcome staff user ${req.user.user_id}`,
-    role: req.user.role
-  });
-});
-
-// GET /staff/patients - Protected route to fetch patient data
-router.get("/staff/patients", authenticateToken, async (req, res) => {
-  if (req.user.role !== "staff") {
-    return res.status(403).json({ error: "Access denied: staff only" });
+    return res.json({ token, username, role: demoUser.role, firstName: demoUser.firstName, lastName: demoUser.lastName });
   }
 
   try {
-    const [rows] = await pool.query(
-      "SELECT patient_id, name, age, condition FROM patients"
+    // Query user table with decrypted username
+    const [userRows] = await pool.query(
+      `SELECT user_id, 
+              CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) AS username, 
+              password, role
+       FROM user
+       WHERE CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) = ?`,
+      [username]
     );
-    res.json(rows);
+
+    if (userRows.length > 0) {
+      const user = userRows[0];
+      if (hashPassword(password) !== user.password) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
+      const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET || "your_secret_key", { expiresIn: "1h" });
+      return res.json({ token, username: user.username, role: user.role });
+    }
+
+    res.status(401).json({ error: "Invalid username or password" });
   } catch (err) {
-    console.error("Error fetching patients:", err.message);
+    console.error("Login error:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 });
