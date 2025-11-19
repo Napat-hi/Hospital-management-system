@@ -460,23 +460,34 @@ CREATE USER 'staff_user'@'%' IDENTIFIED BY 'StaffPassword123!';
 /* =========================================================
    PRIVILEGES (Based on requirement matrix)
    - Encrypted tables grant access to decrypted VIEWS ONLY
+   
+   Matrix:
+   Entity      | Admin | Doctor | Staff
+   ------------|-------|--------|-------
+   Admin       | —     | —      | —
+   Doctor      | R     | CRUD   | —
+   Staff       | CRU   | —      | —
+   Patient     | —     | R      | CRUD
+   Appointment | —     | RU     | CRUD
+   Bill        | —     | —      | CRUD
+   User        | CRUD  | —      | —
    ========================================================= */
 
 /* ----------------------------------------------------------
    ADMIN USER
    ---------------------------------------------------------- */
 
--- Doctor table → R
-GRANT SELECT ON HMS.doctor TO 'admin_user'@'%';
+-- Doctor table → R (Read only)
+GRANT SELECT ON HMS.v_doctor_decrypted TO 'admin_user'@'%';
 
--- Staff table → CRU
-GRANT SELECT, INSERT, UPDATE ON HMS.staff TO 'admin_user'@'%';
+-- Staff table → CRU (Create, Read, Update)
+GRANT SELECT, INSERT, UPDATE ON HMS.v_staff_decrypted TO 'admin_user'@'%';
 
+-- Patient → no privileges
 -- Appointment → no privileges
 -- Bill → no privileges
--- BUT encrypted: if needed they must use view only
 
--- User table → CRUD (ON VIEW ONLY)
+-- User table → CRUD (Create, Read, Update, Delete)
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%';
 
 
@@ -484,15 +495,18 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%'
    DOCTOR USER
    ---------------------------------------------------------- */
 
--- Doctor table → CRUD
-GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.doctor TO 'doctor_user'@'%';
+-- Doctor table → CRUD (Create, Read, Update, Delete)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_doctor_decrypted TO 'doctor_user'@'%';
 
 -- Staff table → no access
 
--- Appointment table → RU
-GRANT SELECT, UPDATE ON HMS.appointment TO 'doctor_user'@'%';
+-- Patient → R (Read only)
+GRANT SELECT ON HMS.v_patient_decrypted TO 'doctor_user'@'%';
 
--- Bill → no access (encrypted anyway, must NOT be granted)
+-- Appointment table → RU (Read, Update)
+GRANT SELECT, UPDATE ON HMS.v_appointment_decrypted TO 'doctor_user'@'%';
+
+-- Bill → no access
 -- User → no access
 
 
@@ -502,16 +516,18 @@ GRANT SELECT, UPDATE ON HMS.appointment TO 'doctor_user'@'%';
 
 -- Doctor table → no access
 
--- Staff table → CRUD
-GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.staff TO 'staff_user'@'%';
+-- Staff table → no access
 
--- Appointment table → CRUD
-GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.appointment TO 'staff_user'@'%';
+-- Patient → CRUD (Create, Read, Update, Delete)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_patient_decrypted TO 'staff_user'@'%';
 
--- Bill → CRUD (ON VIEW ONLY)
+-- Appointment table → CRUD (Create, Read, Update, Delete)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_appointment_decrypted TO 'staff_user'@'%';
+
+-- Bill → CRUD (Create, Read, Update, Delete)
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_bill_decrypted TO 'staff_user'@'%';
 
--- Payment → CRUD (ON VIEW ONLY)
+-- Payment → CRUD (Create, Read, Update, Delete)
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_payment_decrypted TO 'staff_user'@'%';
 
 -- User table → no access
