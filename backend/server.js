@@ -12,33 +12,290 @@ app.use(express.json());
 // ============================================
 // All patient and appointment data comes from the HMS database
 
-// Dummy users array for admin/staff pages (keep for now)
-let users = [
-  { id: 1, first_name: "John", last_name: "Doe", email: "john.doe@hospital.com", role: "Doctor", department: "Cardiology" },
-  { id: 2, first_name: "Jane", last_name: "Smith", email: "jane.smith@hospital.com", role: "Doctor", department: "Pediatrics" }
-];
+// ============================================
+// ADMIN PAGE API ENDPOINTS
+// ============================================
 
-// Then define your API routes below
-app.get('/api/users', (req, res) => {
-  res.json(users);
+// 1. GET - Get all users (doctors and staff combined)
+app.get('/api/users', async (req, res) => {
+  try {
+    // Get all doctors
+    const [doctors] = await db.query(`
+      SELECT 
+        doctor_id as id,
+        first_name,
+        last_name,
+        COALESCE(CAST(AES_DECRYPT(email, get_enc_key()) AS CHAR), '') as email,
+        COALESCE(CAST(AES_DECRYPT(phone, get_enc_key()) AS CHAR), '') as phone,
+        'Doctor' as role,
+        department,
+        specialization,
+        NULL as position,
+        hire_date,
+        user_id
+      FROM doctor
+    `);
+    
+    // Get all staff
+    const [staff] = await db.query(`
+      SELECT 
+        staff_id as id,
+        first_name,
+        last_name,
+        COALESCE(CAST(AES_DECRYPT(email, get_enc_key()) AS CHAR), '') as email,
+        COALESCE(CAST(AES_DECRYPT(phone, get_enc_key()) AS CHAR), '') as phone,
+        'Staff' as role,
+        department,
+        NULL as specialization,
+        position,
+        hire_date,
+        user_id
+      FROM staff
+    `);
+    
+    // Combine and return
+    const allUsers = [...doctors, ...staff];
+    res.json(allUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
 });
 
-app.post('/api/users', (req, res) => {
-  const newUser = { id: Date.now(), ...req.body };
-  users.push(newUser);
-  res.status(201).json(newUser);
+// 2. POST - Create new user (doctor or staff)
+app.post('/api/users', async (req, res) => {
+  try {
+    console.log('Create user request:', req.body);
+    
+    const { 
+      role, 
+      first_name, 
+      last_name, 
+      username, 
+      password, 
+      dob, 
+      department, 
+      specialization, 
+      position, 
+      phone, 
+      email 
+    } = req.body;
+    
+    // Validation
+    if (!role || !first_name || !last_name || !username || !password || !dob) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    if (role !== 'Doctor' && role !== 'Staff') {
+      return res.status(400).json({ error: 'Role must be either Doctor or Staff' });
+    }
+    
+    // Start transaction
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      // 1. Create user account first
+      const [userResult] = await connection.query(`
+        INSERT INTO user (username, password)
+        VALUES (?, ?)
+      `, [username, password]);
+      
+      const userId = userResult.insertId;
+      
+      // 2. Create doctor or staff record
+      if (role === 'Doctor') {
+        if (!specialization) {
+          throw new Error('Specialization is required for doctors');
+        }
+        
+        const [doctorResult] = await connection.query(`
+          INSERT INTO doctor (first_name, last_name, department, specialization, email, phone, user_id, hire_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
+        `, [first_name, last_name, department, specialization, email || null, phone || null, userId]);
+        
+      } else if (role === 'Staff') {
+        if (!position) {
+          throw new Error('Position is required for staff');
+        }
+        
+        const [staffResult] = await connection.query(`
+          INSERT INTO staff (first_name, last_name, department, position, email, phone, user_id, hire_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
+        `, [first_name, last_name, department, position, email || null, phone || null, userId]);
+      }
+      
+      // Commit transaction
+      await connection.commit();
+      
+      res.status(201).json({
+        message: `${role} created successfully`,
+        userId: userId
+      });
+      
+    } catch (error) {
+      // Rollback on error
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+    
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user', details: error.message });
+  }
 });
 
-app.put('/api/users/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  users = users.map(u => u.id === id ? { ...u, ...req.body } : u);
-  res.json({ success: true });
+// 3. PUT - Update user (doctor or staff)
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { 
+      role, 
+      first_name, 
+      last_name, 
+      department, 
+      specialization, 
+      position, 
+      phone, 
+      email,
+      dob
+    } = req.body;
+    
+    console.log('Update user request:', { id, role, ...req.body });
+    
+    if (!role) {
+      return res.status(400).json({ error: 'Role is required' });
+    }
+    
+    // Update based on role
+    if (role === 'Doctor') {
+      // Build dynamic query to only update email/phone if provided
+      const updates = [];
+      const values = [];
+      
+      updates.push('first_name = ?', 'last_name = ?', 'department = ?', 'specialization = ?');
+      values.push(first_name, last_name, department, specialization || '');
+      
+      if (phone) {
+        updates.push('phone = AES_ENCRYPT(?, get_enc_key())');
+        values.push(phone);
+      }
+      if (email) {
+        updates.push('email = AES_ENCRYPT(?, get_enc_key())');
+        values.push(email);
+      }
+      
+      values.push(id);
+      
+      await db.query(`
+        UPDATE doctor 
+        SET ${updates.join(', ')}
+        WHERE doctor_id = ?
+      `, values);
+      
+    } else if (role === 'Staff') {
+      // Build dynamic query to only update email/phone if provided
+      const updates = [];
+      const values = [];
+      
+      updates.push('first_name = ?', 'last_name = ?', 'department = ?', 'position = ?');
+      values.push(first_name, last_name, department, position || '');
+      
+      if (phone) {
+        updates.push('phone = AES_ENCRYPT(?, get_enc_key())');
+        values.push(phone);
+      }
+      if (email) {
+        updates.push('email = AES_ENCRYPT(?, get_enc_key())');
+        values.push(email);
+      }
+      
+      values.push(id);
+      
+      await db.query(`
+        UPDATE staff 
+        SET ${updates.join(', ')}
+        WHERE staff_id = ?
+      `, values);
+    }
+    
+    res.json({
+      message: `${role} updated successfully`,
+      userId: id
+    });
+    
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user', details: error.message });
+  }
 });
 
-app.patch('/api/users/:id/disable', (req, res) => {
-  const id = parseInt(req.params.id);
-  users = users.map(u => u.id === id ? { ...u, status: 'disabled' } : u);
-  res.json({ success: true });
+// 4. PATCH - Delete user (permanently removes doctor/staff and user account)
+app.patch('/api/users/:id/disable', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { role } = req.body;
+    
+    console.log('Delete user request:', { id, role });
+    
+    if (!role) {
+      return res.status(400).json({ error: 'Role is required to delete user' });
+    }
+    
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    
+    try {
+      let userId = null;
+      
+      if (role === 'Doctor') {
+        // Get user_id first
+        const [rows] = await connection.query('SELECT user_id FROM doctor WHERE doctor_id = ?', [id]);
+        if (rows.length === 0) {
+          throw new Error('Doctor not found');
+        }
+        userId = rows[0].user_id;
+        
+        // Delete doctor record first
+        await connection.query('DELETE FROM doctor WHERE doctor_id = ?', [id]);
+        
+      } else if (role === 'Staff') {
+        // Get user_id first
+        const [rows] = await connection.query('SELECT user_id FROM staff WHERE staff_id = ?', [id]);
+        if (rows.length === 0) {
+          throw new Error('Staff not found');
+        }
+        userId = rows[0].user_id;
+        
+        // Delete staff record first
+        await connection.query('DELETE FROM staff WHERE staff_id = ?', [id]);
+      }
+      
+      // Delete user account
+      if (userId) {
+        await connection.query('DELETE FROM user WHERE user_id = ?', [userId]);
+      }
+      
+      await connection.commit();
+      
+      res.json({
+        message: `${role} deleted successfully`,
+        userId: id
+      });
+      
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+    
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user', details: error.message });
+  }
 });
 
 
@@ -274,9 +531,10 @@ app.post('/api/appointments', async (req, res) => {
     // Combine date and time into TIMESTAMP format
     const datetime = `${appointment_date} ${appointment_time}`;
     
+    // Note: reason is encrypted by trg_appointment_bi trigger automatically
     const [result] = await db.query(`
-      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status)
-      VALUES (?, ?, ?, ?, ?, 'SCHEDULED')
+      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at)
+      VALUES (?, ?, ?, ?, ?, 'SCHEDULED', NOW())
     `, [patient_id, doctor_id, appointment_date, datetime, reason || '']);
     
     res.status(201).json({
@@ -297,6 +555,7 @@ app.put('/api/appointments/:id', async (req, res) => {
     
     const datetime = `${appointment_date} ${appointment_time}`;
     
+    // Note: Must manually encrypt for UPDATE (no trigger for updates)
     await db.query(`
       UPDATE appointment 
       SET patient_id = ?,
@@ -383,6 +642,7 @@ app.post('/api/bills', async (req, res) => {
     // Calculate total
     const total = parseFloat(consultation_fee) + parseFloat(medication_cost || 0) + parseFloat(lab_tests_cost || 0);
     
+    // Note: total is encrypted by trg_bill_bi trigger automatically
     const [result] = await db.query(`
       INSERT INTO bill (patient_id, status, total)
       VALUES (?, 'OPEN', ?)
@@ -404,6 +664,32 @@ app.post('/api/bills', async (req, res) => {
 
 // 14. GET - Get all bills
 app.get('/api/bills', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        b.bill_id as id,
+        b.patient_id,
+        CONCAT(
+          CAST(AES_DECRYPT(p.first_name, get_enc_key()) AS CHAR),
+          ' ',
+          CAST(AES_DECRYPT(p.last_name, get_enc_key()) AS CHAR)
+        ) as patientName,
+        CAST(AES_DECRYPT(b.total, get_enc_key()) AS DECIMAL(10,2)) as totalAmount,
+        b.status,
+        DATE_FORMAT(b.created_at, '%Y-%m-%d %H:%i') as generatedDate
+      FROM bill b
+      LEFT JOIN patient p ON b.patient_id = p.patient_id
+      ORDER BY b.created_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching bills:', error);
+    res.status(500).json({ error: 'Failed to fetch bills' });
+  }
+});
+
+// 15. GET - Get single bill by ID
+app.get('/api/bills/:id', async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
@@ -490,8 +776,11 @@ app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
   console.log('');
   console.log('Available endpoints:');
-  console.log('  Users:');
-  console.log('    - GET    /api/users');
+  console.log('  Admin Page:');
+  console.log('    - GET    /api/users              (get all doctors & staff)');
+  console.log('    - POST   /api/users              (create doctor or staff)');
+  console.log('    - PUT    /api/users/:id          (update doctor or staff)');
+  console.log('    - PATCH  /api/users/:id/disable  (delete doctor or staff)');
   console.log('  Doctor Page:');
   console.log('    - GET    /api/patients');
   console.log('    - GET    /api/patients/:id');
