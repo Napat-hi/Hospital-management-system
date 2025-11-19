@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const db = require("./config/database");
 const authRouter = require("./auth");
+const userRouter = require("./user"); // ✅ ADD THIS
 require("dotenv").config();
 
 const app = express();
@@ -9,7 +10,11 @@ const app = express();
 // middleware
 app.use(cors());
 app.use(express.json());
+
+// ✅ Mount routers
 app.use("/api/auth", authRouter);
+app.use("/api/user", userRouter); // ✅ ADD THIS LINE
+
 // ============================================
 // DOCTOR PAGE DATA - Now from HMS Database
 // ============================================
@@ -96,7 +101,6 @@ app.get('/api/patients/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
 
-    // ✅ Guard against NaN
     if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid patient ID' });
     }
@@ -545,36 +549,6 @@ app.delete('/api/bills/:id', async (req, res) => {
   }
 });
 
-app.listen(5000, () => {
-  console.log('Backend running on http://localhost:5000');
-  console.log('');
-  console.log('Available endpoints:');
-  console.log('  Users:');
-  console.log('    - GET    /api/users');
-  console.log('  Doctor Page:');
-  console.log('    - GET    /api/patients');
-  console.log('    - GET    /api/patients/:id');
-  console.log('    - GET    /api/appointments');
-  console.log('    - GET    /api/appointments/:id');
-  console.log('    - PATCH  /api/appointments/:id/complete');
-  console.log('    - PATCH  /api/appointments/:id/uncomplete');
-  console.log('  Staff Page:');
-  console.log('    - POST   /api/patients           (create patient)');
-  console.log('    - PUT    /api/patients/:id       (update patient)');
-  console.log('    - POST   /api/appointments       (create appointment)');
-  console.log('    - PUT    /api/appointments/:id   (update appointment)');
-  console.log('    - DELETE /api/appointments/:id   (delete appointment)');
-  console.log('    - GET    /api/doctors            (get all doctors)');
-  console.log('    - POST   /api/bills              (generate bill)');
-  console.log('    - GET    /api/bills              (get all bills)');
-  console.log('    - GET    /api/bills/:id          (get bill by ID)');
-  console.log('    - DELETE /api/bills/:id          (delete bill)');
-});
-
-// ============================================
-// STAFF PAGE API ENDPOINTS
-// ============================================
-
 // GET all staff
 app.get('/api/staff', async (req, res) => {
   try {
@@ -661,4 +635,36 @@ app.patch('/api/staff/:id/disable', async (req, res) => {
     console.error('Error disabling staff:', error);
     res.status(500).json({ error: 'Failed to disable staff' });
   }
+});
+
+app.listen(5000, () => {
+  console.log('Backend running on http://localhost:5000');
+  console.log('');
+  console.log('Available endpoints:');
+  console.log('  Auth:');
+  console.log('    - POST   /api/auth/login');
+  console.log('  User:');
+  console.log('    - GET    /api/user/profile');
+  console.log('    - PUT    /api/user/profile');
+  console.log('    - PUT    /api/user/change-password');
+  console.log('  Users (Admin):');
+  console.log('    - GET    /api/users');
+  console.log('  Doctor Page:');
+  console.log('    - GET    /api/patients');
+  console.log('    - GET    /api/patients/:id');
+  console.log('    - GET    /api/appointments');
+  console.log('    - GET    /api/appointments/:id');
+  console.log('    - PATCH  /api/appointments/:id/complete');
+  console.log('    - PATCH  /api/appointments/:id/uncomplete');
+  console.log('  Staff Page:');
+  console.log('    - POST   /api/patients           (create patient)');
+  console.log('    - PUT    /api/patients/:id       (update patient)');
+  console.log('    - POST   /api/appointments       (create appointment)');
+  console.log('    - PUT    /api/appointments/:id   (update appointment)');
+  console.log('    - DELETE /api/appointments/:id   (delete appointment)');
+  console.log('    - GET    /api/doctors            (get all doctors)');
+  console.log('    - POST   /api/bills              (generate bill)');
+  console.log('    - GET    /api/bills              (get all bills)');
+  console.log('    - GET    /api/bills/:id          (get bill by ID)');
+  console.log('    - DELETE /api/bills/:id          (delete bill)');
 });

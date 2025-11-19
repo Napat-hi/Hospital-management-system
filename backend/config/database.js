@@ -15,14 +15,13 @@ const pool = mysql.createPool({
 });
 
 // Test the connection
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error(' Database connection failed:', err.message);
-    return;
-  }
-  console.log(' Database connected successfully!');
-  connection.release();
-});
+pool.getConnection()
+  .then(connection => {
+    console.log('✅ Database connected successfully');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('❌ Database connection failed:', err.message);
+  });
 
-// Export promise-based pool for async/await
-module.exports = pool.promise();
+module.exports = pool;
