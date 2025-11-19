@@ -648,6 +648,70 @@ DELETE /api/bills/:id             - Delete bill
 
 ### 6.3 Data Flow Example
 
+**Creating an Appointment:**
+
+1. **Frontend (Staffpage.js)**:
+```javascript
+const appointmentFormData = {
+  patientId: 1,              // camelCase
+  doctorId: 2,
+  appointmentDate: '2025-11-20',
+  appointmentTime: '14:30',
+  reason: 'Follow-up consultation'
+};
+await staffAPI.createAppointment(appointmentFormData);
+```
+
+2. **API Helper (staffAPI.js)**:
+```javascript
+// Convert camelCase to snake_case for backend
+const createAppointment = async (appointmentData) => {
+  const backendData = {
+    patient_id: appointmentData.patientId,      // snake_case
+    doctor_id: appointmentData.doctorId,
+    appointment_date: appointmentData.appointmentDate,
+    appointment_time: appointmentData.appointmentTime,
+    reason: appointmentData.reason
+  };
+  
+  return apiCall('/appointments', 'POST', backendData);
+};
+```
+
+3. **Backend (server.js)**:
+```javascript
+app.post('/api/appointments', async (req, res) => {
+  const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
+  
+  // Combine date and time
+  const datetime = `${appointment_date} ${appointment_time}:00`;
+  
+  // Insert with encryption
+  const [result] = await db.query(`
+    INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status)
+    VALUES (?, ?, ?, ?, AES_ENCRYPT(?, get_enc_key()), 'SCHEDULED')
+  `, [patient_id, doctor_id, appointment_date, datetime, reason]);
+  
+  res.json({ success: true, appointment_id: result.insertId });
+});
+```
+
+4. **Database**:
+```sql
+-- Query executed:
+INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status)
+VALUES (1, 2, '2025-11-20', '2025-11-20 14:30:00', <encrypted_reason>, 'SCHEDULED');
+
+-- Returns: appointment_id = 6
+```
+
+5. **Response flows back**:
+```
+Database → Backend → Frontend → User sees success alert
+```
+
+---
+
 **Creating a Bill:**
 
 1. **Frontend (Staffpage.js)**:

@@ -261,13 +261,17 @@ http://localhost:5000
   "reason": "Follow-up consultation for previous treatment"
 }
 ```
-**Note**: Backend combines date and time into `appointment_datetime`  
+**Note**: 
+- Backend expects snake_case field names (patient_id, doctor_id, etc.)
+- Frontend API helper automatically converts camelCase to snake_case
+- Backend combines date and time into `appointment_datetime`  
 **Response**: `{ success: true, appointment_id: 6 }`
 
 #### 9. PUT /api/appointments/:id
 **Purpose**: Update appointment  
 **Parameters**: `id` (appointment_id)  
 **Request Body**: Same as POST plus optional `status`  
+**Note**: Frontend API helper converts camelCase to snake_case automatically  
 **Response**: `{ success: true }`
 
 #### 10. DELETE /api/appointments/:id
@@ -576,6 +580,19 @@ export const createAppointment = async (appointmentData) => {
     reason: appointmentData.reason
   };
   return apiCall('/appointments', 'POST', backendData);
+};
+
+// Update appointment with field name conversion
+export const updateAppointment = async (id, appointmentData) => {
+  // Convert camelCase to snake_case for backend
+  const backendData = {
+    patient_id: appointmentData.patientId,
+    doctor_id: appointmentData.doctorId,
+    appointment_date: appointmentData.appointmentDate,
+    appointment_time: appointmentData.appointmentTime,
+    reason: appointmentData.reason
+  };
+  return apiCall(`/appointments/${id}`, 'PUT', backendData);
 };
 ```
 
@@ -927,6 +944,28 @@ SELECT COUNT(*) FROM appointment;
 // Should see successful GET requests to /api/patients, /api/appointments
 ```
 
+#### 7. "500 Internal Server Error" on appointment create/update
+**Symptoms**: Appointments won't save, 500 error in console  
+**Causes**:
+- Field name mismatch (camelCase vs snake_case)
+- Missing required fields
+- Backend expects snake_case but receives camelCase
+
+**Solutions**:
+```javascript
+// staffAPI.js must convert field names
+const backendData = {
+  patient_id: appointmentData.patientId,    // Convert camelCase
+  doctor_id: appointmentData.doctorId,
+  appointment_date: appointmentData.appointmentDate,
+  appointment_time: appointmentData.appointmentTime,
+  reason: appointmentData.reason
+};
+
+// Check backend logs for SQL errors
+// Verify all required fields are present
+```
+
 ---
 
 ## Sample Data
@@ -968,7 +1007,13 @@ SELECT COUNT(*) FROM appointment;
 - **Form validation**: Client-side validation before API calls
 - **Responsive design**: Mobile-friendly layouts
 
-### Recent Updates (November 15, 2025)
+### Recent Updates (November 20, 2025)
+✅ **Appointment System Complete**:
+- Fixed appointment creation and update operations
+- Implemented automatic field name conversion (camelCase ↔ snake_case)
+- Frontend sends camelCase, API helper converts to snake_case for backend
+- Both createAppointment and updateAppointment fully functional
+
 ✅ **Billing System Complete**:
 - Bill generation from completed appointments
 - Backend automatically retrieves patient_id from appointments
@@ -977,6 +1022,8 @@ SELECT COUNT(*) FROM appointment;
 - All bills list with proper formatting
 
 ✅ **Bug Fixes**:
+- Fixed 500 Internal Server Error on appointment update
+- Fixed field name mismatch between frontend and backend
 - Fixed appointment creation validation with user alerts
 - Fixed bill generation missing required fields
 - Fixed bill display showing undefined values
@@ -990,11 +1037,12 @@ SELECT COUNT(*) FROM appointment;
 
 ### Known Limitations
 1. **Admin page**: Not yet connected to database
-2. **Authentication**: No login system implemented
+2. **Authentication**: No login system implemented (token parameters removed)
 3. **Authorization**: No role-based access control
 4. **Search optimization**: Client-side filtering (could be server-side)
 5. **Pagination**: No pagination for large datasets
 6. **Bill breakdown**: Shows only total amount, not itemized costs in bills list
+7. **Port Configuration**: Currently on 5001, may need adjustment for deployment
 
 ### Future Enhancements
 - [ ] Add user authentication (login/logout)
@@ -1052,6 +1100,6 @@ For issues or questions:
 
 ---
 
-**Last Updated**: November 15, 2025  
-**Version**: 1.1  
-**Status**: Fully Functional (Doctor & Staff pages with complete billing system)
+**Last Updated**: November 20, 2025  
+**Version**: 1.2  
+**Status**: Fully Functional (Doctor & Staff pages with complete appointment and billing systems)
