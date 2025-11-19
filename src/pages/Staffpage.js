@@ -200,6 +200,13 @@ export default function Staffpage() {
     labTestsCost: "",
     status: "unpaid"
   });
+  const [editingBill, setEditingBill] = useState(null);
+  const [editBillData, setEditBillData] = useState({
+    consultationFee: "",
+    medicationCost: "",
+    labTestsCost: "",
+    status: ""
+  });
 
   // Validation errors states
   const [patientFormErrors, setPatientFormErrors] = useState({
@@ -283,6 +290,7 @@ export default function Staffpage() {
   const loadBills = async () => {
     try {
       const data = await staffAPI.getBills();
+      console.log('Loaded bills:', data);
       setBills(data);
     } catch (error) {
       console.error('Error loading bills:', error);
@@ -293,7 +301,7 @@ export default function Staffpage() {
   const menu = [
     { key: "patients",   label: "Patient Information" },
     { key: "appointments", label: "Appointments" },
-    { key: "billing",    label: "Generate Bill" },
+    { key: "billing",    label: "Bills & Billing" },
   ];
 
   // ---- Derived list ----
@@ -963,7 +971,85 @@ export default function Staffpage() {
     }
   };
 
-  // ---- Handle delete bill ----
+  // ---- Handle update bill status ----
+  const handleUpdateBillStatus = async (billId, newStatus) => {
+    try {
+      console.log(`Updating bill ${billId} status to ${newStatus}`);
+      
+      // Call backend API to update bill status
+      await staffAPI.updateBill(billId, { status: newStatus });
+      
+      // Reload bills from database to show updated data
+      await loadBills();
+      
+      alert(`Bill #${billId} status updated to ${newStatus}!`);
+      
+    } catch (error) {
+      console.error('Error updating bill status:', error);
+      alert('Error updating bill. Please make sure backend is running!');
+    }
+  };
+
+  // ---- Handle edit bill ----
+  const handleEditBill = (bill) => {
+    setEditingBill(bill);
+    // Handle old bills that don't have cost breakdown
+    const hasBreakdown = bill.consultationFee !== null && bill.consultationFee !== undefined;
+    setEditBillData({
+      consultationFee: hasBreakdown ? bill.consultationFee : bill.totalAmount || "0",
+      medicationCost: hasBreakdown ? bill.medicationCost : "0",
+      labTestsCost: hasBreakdown ? bill.labTestsCost : "0",
+      status: bill.status || "OPEN"
+    });
+  };
+
+  const handleSaveBillEdit = async () => {
+    if (!editingBill) return;
+
+    try {
+      // Validate cost fields
+      const consultationFee = parseFloat(editBillData.consultationFee);
+      const medicationCost = parseFloat(editBillData.medicationCost);
+      const labTestsCost = parseFloat(editBillData.labTestsCost);
+      
+      if (isNaN(consultationFee) || consultationFee < 0) {
+        alert('Please enter a valid consultation fee (0 or greater)');
+        return;
+      }
+      if (isNaN(medicationCost) || medicationCost < 0) {
+        alert('Please enter a valid medication cost (0 or greater)');
+        return;
+      }
+      if (isNaN(labTestsCost) || labTestsCost < 0) {
+        alert('Please enter a valid lab tests cost (0 or greater)');
+        return;
+      }
+
+      console.log(`Saving bill ${editingBill.id}:`, editBillData);
+      
+      // Call backend API to update bill with individual cost fields
+      await staffAPI.updateBill(editingBill.id, {
+        consultation_fee: consultationFee,
+        medication_cost: medicationCost,
+        lab_tests_cost: labTestsCost,
+        status: editBillData.status
+      });
+      
+      // Reload bills from database
+      await loadBills();
+      
+      // Close edit modal
+      setEditingBill(null);
+      setEditBillData({ consultationFee: "", medicationCost: "", labTestsCost: "", status: "" });
+      
+      alert(`Bill #${editingBill.id} updated successfully!`);
+      
+    } catch (error) {
+      console.error('Error updating bill:', error);
+      alert('Error updating bill. Please make sure backend is running!');
+    }
+  };
+
   const handleDeleteBill = async (billId) => {
     if (!window.confirm("Are you sure you want to delete this bill? This action cannot be undone.")) {
       return;
@@ -1946,11 +2032,20 @@ export default function Staffpage() {
             )}
 
                 {/* All Generated Bills List */}
-                {generatedBills.length > 0 && (
+                {bills.length > 0 && (
                   <div className="mt-4">
-                    <h5 className="mb-3">All Generated Bills</h5>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="mb-0">All Generated Bills</h5>
+                      <button 
+                        className="btn btn-sm btn-outline-primary"
+                        onClick={() => loadBills()}
+                      >
+                        <i className="bi bi-arrow-clockwise me-1"></i>
+                        Refresh
+                      </button>
+                    </div>
                     <div className="row g-3">
-                      {generatedBills.map((bill) => (
+                      {bills.map((bill) => (
                         <div key={bill.id} className="col-md-6 col-lg-4">
                           <div className="card shadow-sm h-100">
                             <div className="card-header bg-light d-flex justify-content-between align-items-center">
@@ -1972,15 +2067,55 @@ export default function Staffpage() {
                                 <small className="text-muted">Generated Date</small>
                                 <div>{bill.generatedDate || 'N/A'}</div>
                               </div>
-                              <div className="mb-2">
-                                <small className="text-muted">Total Amount</small>
-                                <div className="fs-5 fw-bold text-success">${parseFloat(bill.totalAmount || 0).toFixed(2)}</div>
-                              </div>
+                              {/* Show cost breakdown if available */}
+                              {bill.consultationFee !== null && bill.consultationFee !== undefined ? (
+                                <>
+                                  <div className="mb-2">
+                                    <small className="text-muted">Cost Breakdown</small>
+                                    <div className="small">
+                                      <div>Consultation: ${parseFloat(bill.consultationFee || 0).toFixed(2)}</div>
+                                      <div>Medication: ${parseFloat(bill.medicationCost || 0).toFixed(2)}</div>
+                                      <div>Lab Tests: ${parseFloat(bill.labTestsCost || 0).toFixed(2)}</div>
+                                    </div>
+                                  </div>
+                                  <div className="mb-2">
+                                    <small className="text-muted">Total Amount</small>
+                                    <div className="fs-5 fw-bold text-success">${parseFloat(bill.totalAmount || 0).toFixed(2)}</div>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="mb-2">
+                                  <small className="text-muted">Total Amount</small>
+                                  <div className="fs-5 fw-bold text-success">${parseFloat(bill.totalAmount || 0).toFixed(2)}</div>
+                                  <small className="text-muted fst-italic">(Legacy bill - no breakdown)</small>
+                                </div>
+                              )}
                             </div>
-                            <div className="card-footer bg-light d-flex justify-content-end gap-2">
+                            <div className="card-footer bg-light d-flex justify-content-between gap-1">
+                              <button
+                                className="btn btn-sm btn-outline-success"
+                                onClick={() => {
+                                  const newStatus = bill.status === 'PAID' ? 'OPEN' : 'PAID';
+                                  handleUpdateBillStatus(bill.id, newStatus);
+                                }}
+                              >
+                                <i className="bi bi-check-circle me-1"></i>
+                                {bill.status === 'PAID' ? 'Unpaid' : 'Paid'}
+                              </button>
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => handleEditBill(bill)}
+                              >
+                                <i className="bi bi-pencil me-1"></i>
+                                Edit
+                              </button>
                               <button 
                                 className="btn btn-sm btn-outline-danger"
-                                onClick={() => handleDeleteBill(bill.id)}
+                                onClick={() => {
+                                  if (window.confirm(`Delete Bill #${bill.id}?`)) {
+                                    handleDeleteBill(bill.id);
+                                  }
+                                }}
                               >
                                 <i className="bi bi-trash me-1"></i>
                                 Delete
@@ -1991,7 +2126,112 @@ export default function Staffpage() {
                       ))}
                     </div>
                   </div>
-                )}                {appointments.filter(a => a.status === 'completed').length === 0 && (
+                )}
+
+                {/* Edit Bill Modal */}
+                {editingBill && (
+                  <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                      <div className="modal-content">
+                        <div className="modal-header">
+                          <h5 className="modal-title">Edit Bill #{editingBill.id}</h5>
+                          <button 
+                            type="button" 
+                            className="btn-close" 
+                            onClick={() => setEditingBill(null)}
+                          ></button>
+                        </div>
+                        <div className="modal-body">
+                          <div className="mb-3">
+                            <label className="form-label">Patient</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              value={editingBill.patientName}
+                              disabled
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label">Consultation Fee ($) <span className="text-danger">*</span></label>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              value={editBillData.consultationFee}
+                              onChange={(e) => setEditBillData({ ...editBillData, consultationFee: e.target.value })}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label">Medication Cost ($) <span className="text-danger">*</span></label>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              value={editBillData.medicationCost}
+                              onChange={(e) => setEditBillData({ ...editBillData, medicationCost: e.target.value })}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label">Lab Tests Cost ($) <span className="text-danger">*</span></label>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              value={editBillData.labTestsCost}
+                              onChange={(e) => setEditBillData({ ...editBillData, labTestsCost: e.target.value })}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label">Total Amount (Auto-calculated)</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              value={`$${(parseFloat(editBillData.consultationFee || 0) + parseFloat(editBillData.medicationCost || 0) + parseFloat(editBillData.labTestsCost || 0)).toFixed(2)}`}
+                              disabled
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label">Status <span className="text-danger">*</span></label>
+                            <select 
+                              className="form-select"
+                              value={editBillData.status}
+                              onChange={(e) => setEditBillData({ ...editBillData, status: e.target.value })}
+                            >
+                              <option value="OPEN">Open</option>
+                              <option value="PAID">Paid</option>
+                              <option value="CLOSED">Closed</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="modal-footer">
+                          <button 
+                            type="button" 
+                            className="btn btn-secondary" 
+                            onClick={() => setEditingBill(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="button" 
+                            className="btn btn-primary"
+                            onClick={handleSaveBillEdit}
+                          >
+                            <i className="bi bi-save me-1"></i>
+                            Save Changes
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {appointments.filter(a => a.status === 'completed').length === 0 && (
                   <div className="alert alert-warning">
                     No completed appointments available for billing.
                   </div>

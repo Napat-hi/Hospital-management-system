@@ -163,6 +163,15 @@ const getBill = async (id) => {
   return apiCall(`${API_URL}/api/bills/${id}`);
 };
 
+// Update bill
+const updateBill = async (id, billData) => {
+  console.log('staffAPI.updateBill called with:', { id, billData });
+  return apiCall(`${API_URL}/api/bills/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(billData),
+  });
+};
+
 // Delete bill
 const deleteBill = async (id) => {
   return apiCall(`${API_URL}/api/bills/${id}`, {
@@ -192,5 +201,6 @@ export const staffAPI = {
   generateBill,
   getBills,
   getBill,
+  updateBill,
   deleteBill,
 };

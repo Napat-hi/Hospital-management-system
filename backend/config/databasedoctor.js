@@ -5,8 +5,8 @@ require('dotenv').config();
 // Create connection pool (better than single connection)
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'root',
+  user: process.env.DB_USER || 'doctor_user',
+  password: process.env.DB_PASSWORD || 'DoctorPassword123!',
   database: process.env.DB_NAME || 'HMS',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
@@ -17,10 +17,10 @@ const pool = mysql.createPool({
 // Test the connection
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error(' Database connection failed:', err.message);
+    console.error(' Doctor Database connection failed:', err.message);
     return;
   }
-  console.log(' Database connected successfully!');
+  console.log(' Doctor Database connected successfully!');
   connection.release();
 });
 

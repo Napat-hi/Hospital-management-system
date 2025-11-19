@@ -1,6 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const db = require('./config/database');
+const dbAdmin = require('./config/databaseadmin');
+const dbDoctor = require('./config/databasedoctor');
+const dbStaff = require('./config/databasestaff');
+const db = dbAdmin; // Alias for admin endpoints
 const app = express();
 
 app.use(cors());
@@ -299,12 +302,12 @@ app.patch('/api/users/:id/disable', async (req, res) => {
 });
 
 
-// DOCTOR PAGE API ENDPOINTS
+// DOCTOR PAGE API ENDPOINTS (use dbDoctor for read-only access)
 
 // 1. GET all patients
 app.get('/api/patients', async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const [rows] = await dbDoctor.query(`
       SELECT 
         patient_id as id,
         CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR) as first_name,
@@ -328,7 +331,7 @@ app.get('/api/patients', async (req, res) => {
 app.get('/api/patients/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [rows] = await db.query(`
+    const [rows] = await dbDoctor.query(`
       SELECT 
         patient_id as id,
         CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR) as first_name,
@@ -357,7 +360,7 @@ app.get('/api/patients/:id', async (req, res) => {
 // 3. GET all appointments
 app.get('/api/appointments', async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const [rows] = await dbDoctor.query(`
       SELECT 
         a.appointment_id as id,
         a.patient_id as patient_id,
@@ -388,7 +391,7 @@ app.get('/api/appointments', async (req, res) => {
 app.get('/api/appointments/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [rows] = await db.query(`
+    const [rows] = await dbDoctor.query(`
       SELECT 
         a.appointment_id as id,
         CONCAT(
@@ -418,12 +421,12 @@ app.get('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// 5. PATCH - Mark appointment as complete
+// 5. PATCH - Mark appointment as completed (doctor can update)
 app.patch('/api/appointments/:id/complete', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     
-    await db.query(`
+    await dbDoctor.query(`
       UPDATE appointment 
       SET status = 'COMPLETED'
       WHERE appointment_id = ?
@@ -444,7 +447,7 @@ app.patch('/api/appointments/:id/uncomplete', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     
-    await db.query(`
+    await dbDoctor.query(`
       UPDATE appointment 
       SET status = 'SCHEDULED'
       WHERE appointment_id = ?
@@ -464,7 +467,7 @@ app.patch('/api/appointments/:id/uncomplete', async (req, res) => {
 // STAFF PAGE API ENDPOINTS
 // ============================================
 
-// 7. POST - Create new patient
+// 7. POST - Create new patient (staff creates patients)
 app.post('/api/patients', async (req, res) => {
   try {
     const { first_name, last_name, dob, sex, phone, email, address, emergency_contact } = req.body;
@@ -474,7 +477,7 @@ app.post('/api/patients', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    const [result] = await db.query(`
+    const [result] = await dbStaff.query(`
       INSERT INTO patient (first_name, last_name, dob, sex, phone, email, address, emergency_contact)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `, [first_name, last_name, dob, sex, phone || null, email || null, address || null, emergency_contact || null]);
@@ -489,13 +492,13 @@ app.post('/api/patients', async (req, res) => {
   }
 });
 
-// 8. PUT - Update patient information
+// 8. PUT - Update patient information (staff updates patients)
 app.put('/api/patients/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { first_name, last_name, dob, sex, phone, email, address, emergency_contact } = req.body;
     
-    await db.query(`
+    await dbStaff.query(`
       UPDATE patient 
       SET first_name = AES_ENCRYPT(?, get_enc_key()),
           last_name = AES_ENCRYPT(?, get_enc_key()),
@@ -518,7 +521,7 @@ app.put('/api/patients/:id', async (req, res) => {
   }
 });
 
-// 9. POST - Create new appointment
+// 9. POST - Create new appointment (staff creates appointments)
 app.post('/api/appointments', async (req, res) => {
   try {
     const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
@@ -532,7 +535,7 @@ app.post('/api/appointments', async (req, res) => {
     const datetime = `${appointment_date} ${appointment_time}`;
     
     // Note: reason is encrypted by trg_appointment_bi trigger automatically
-    const [result] = await db.query(`
+    const [result] = await dbStaff.query(`
       INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at)
       VALUES (?, ?, ?, ?, ?, 'SCHEDULED', NOW())
     `, [patient_id, doctor_id, appointment_date, datetime, reason || '']);
@@ -547,7 +550,7 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
-// 10. PUT - Update appointment
+// 10. PUT - Update appointment (staff updates appointments)
 app.put('/api/appointments/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -556,7 +559,7 @@ app.put('/api/appointments/:id', async (req, res) => {
     const datetime = `${appointment_date} ${appointment_time}`;
     
     // Note: Must manually encrypt for UPDATE (no trigger for updates)
-    await db.query(`
+    await dbStaff.query(`
       UPDATE appointment 
       SET patient_id = ?,
           doctor_id = ?,
@@ -576,12 +579,12 @@ app.put('/api/appointments/:id', async (req, res) => {
   }
 });
 
-// 11. DELETE - Delete appointment
+// 11. DELETE - Delete appointment (staff deletes appointments)
 app.delete('/api/appointments/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     
-    await db.query('DELETE FROM appointment WHERE appointment_id = ?', [id]);
+    await dbStaff.query('DELETE FROM appointment WHERE appointment_id = ?', [id]);
     
     res.json({
       message: 'Appointment deleted successfully',
@@ -596,7 +599,7 @@ app.delete('/api/appointments/:id', async (req, res) => {
 // 12. GET - Get all doctors (for appointment dropdown)
 app.get('/api/doctors', async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const [rows] = await dbStaff.query(`
       SELECT 
         doctor_id as id,
         first_name,
@@ -629,7 +632,7 @@ app.post('/api/bills', async (req, res) => {
     }
     
     // Get patient_id from appointment
-    const [appointmentRows] = await db.query(`
+    const [appointmentRows] = await dbStaff.query(`
       SELECT patient_id FROM appointment WHERE appointment_id = ?
     `, [appointment_id]);
     
@@ -642,16 +645,19 @@ app.post('/api/bills', async (req, res) => {
     // Calculate total
     const total = parseFloat(consultation_fee) + parseFloat(medication_cost || 0) + parseFloat(lab_tests_cost || 0);
     
-    // Note: total is encrypted by trg_bill_bi trigger automatically
-    const [result] = await db.query(`
-      INSERT INTO bill (patient_id, status, total)
-      VALUES (?, 'OPEN', ?)
-    `, [patient_id, total.toFixed(2)]);
+    // Note: Values are NOT encrypted here because trg_bill_bi trigger handles encryption automatically
+    const [result] = await dbStaff.query(`
+      INSERT INTO bill (patient_id, consultation_fee, medication_cost, lab_tests_cost, status, total)
+      VALUES (?, ?, ?, ?, 'OPEN', ?)
+    `, [patient_id, consultation_fee, medication_cost || '0', lab_tests_cost || '0', total.toFixed(2)]);
     
     // Return the full bill object
     res.status(201).json({
       id: result.insertId,
       patient_id: patient_id,
+      consultation_fee: parseFloat(consultation_fee),
+      medication_cost: parseFloat(medication_cost || 0),
+      lab_tests_cost: parseFloat(lab_tests_cost || 0),
       total: total.toFixed(2),
       status: 'OPEN',
       message: 'Bill generated successfully'
@@ -662,10 +668,10 @@ app.post('/api/bills', async (req, res) => {
   }
 });
 
-// 14. GET - Get all bills
+// 14. GET - Get all bills (staff reads bills)
 app.get('/api/bills', async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const [rows] = await dbStaff.query(`
       SELECT 
         b.bill_id as id,
         b.patient_id,
@@ -674,6 +680,9 @@ app.get('/api/bills', async (req, res) => {
           ' ',
           CAST(AES_DECRYPT(p.last_name, get_enc_key()) AS CHAR)
         ) as patientName,
+        CAST(AES_DECRYPT(b.consultation_fee, get_enc_key()) AS DECIMAL(10,2)) as consultationFee,
+        CAST(AES_DECRYPT(b.medication_cost, get_enc_key()) AS DECIMAL(10,2)) as medicationCost,
+        CAST(AES_DECRYPT(b.lab_tests_cost, get_enc_key()) AS DECIMAL(10,2)) as labTestsCost,
         CAST(AES_DECRYPT(b.total, get_enc_key()) AS DECIMAL(10,2)) as totalAmount,
         b.status,
         DATE_FORMAT(b.created_at, '%Y-%m-%d %H:%i') as generatedDate
@@ -691,34 +700,8 @@ app.get('/api/bills', async (req, res) => {
 // 15. GET - Get single bill by ID
 app.get('/api/bills/:id', async (req, res) => {
   try {
-    const [rows] = await db.query(`
-      SELECT 
-        b.bill_id as id,
-        b.patient_id,
-        CONCAT(
-          CAST(AES_DECRYPT(p.first_name, get_enc_key()) AS CHAR),
-          ' ',
-          CAST(AES_DECRYPT(p.last_name, get_enc_key()) AS CHAR)
-        ) as patientName,
-        b.total as totalAmount,
-        b.status,
-        DATE_FORMAT(b.created_at, '%Y-%m-%d %H:%i') as generatedDate
-      FROM bill b
-      LEFT JOIN patient p ON b.patient_id = p.patient_id
-      ORDER BY b.created_at DESC
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching bills:', error);
-    res.status(500).json({ error: 'Failed to fetch bills' });
-  }
-});
-
-// 15. GET - Get single bill by ID
-app.get('/api/bills/:id', async (req, res) => {
-  try {
     const id = parseInt(req.params.id);
-    const [rows] = await db.query(`
+    const [rows] = await dbStaff.query(`
       SELECT 
         b.bill_id as id,
         b.patient_id,
@@ -727,6 +710,9 @@ app.get('/api/bills/:id', async (req, res) => {
           ' ',
           CAST(AES_DECRYPT(p.last_name, get_enc_key()) AS CHAR)
         ) as patientName,
+        CAST(AES_DECRYPT(b.consultation_fee, get_enc_key()) AS DECIMAL(10,2)) as consultationFee,
+        CAST(AES_DECRYPT(b.medication_cost, get_enc_key()) AS DECIMAL(10,2)) as medicationCost,
+        CAST(AES_DECRYPT(b.lab_tests_cost, get_enc_key()) AS DECIMAL(10,2)) as labTestsCost,
         CAST(AES_DECRYPT(b.total, get_enc_key()) AS DECIMAL(10,2)) as totalAmount,
         b.status,
         DATE_FORMAT(b.created_at, '%Y-%m-%d') as generatedDate
@@ -746,14 +732,97 @@ app.get('/api/bills/:id', async (req, res) => {
   }
 });
 
-// 16. DELETE - Delete bill
+// 16. PUT - Update bill (staff updates bills)
+app.put('/api/bills/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { consultation_fee, medication_cost, lab_tests_cost, status } = req.body;
+    
+    console.log('Updating bill:', id, { consultation_fee, medication_cost, lab_tests_cost, status });
+    
+    // Validation
+    if (consultation_fee === undefined && medication_cost === undefined && lab_tests_cost === undefined && !status) {
+      return res.status(400).json({ error: 'Must provide at least one cost field or status to update' });
+    }
+    
+    // Build dynamic update query
+    let updateFields = [];
+    let values = [];
+    
+    if (consultation_fee !== undefined) {
+      updateFields.push('consultation_fee = AES_ENCRYPT(?, get_enc_key())');
+      values.push(parseFloat(consultation_fee).toFixed(2));
+    }
+    
+    if (medication_cost !== undefined) {
+      updateFields.push('medication_cost = AES_ENCRYPT(?, get_enc_key())');
+      values.push(parseFloat(medication_cost).toFixed(2));
+    }
+    
+    if (lab_tests_cost !== undefined) {
+      updateFields.push('lab_tests_cost = AES_ENCRYPT(?, get_enc_key())');
+      values.push(parseFloat(lab_tests_cost).toFixed(2));
+    }
+    
+    // Calculate new total if any cost field is provided
+    if (consultation_fee !== undefined || medication_cost !== undefined || lab_tests_cost !== undefined) {
+      // Get current values if not all provided
+      const [currentBill] = await dbStaff.query(`
+        SELECT 
+          CAST(AES_DECRYPT(consultation_fee, get_enc_key()) AS DECIMAL(10,2)) as consultation_fee,
+          CAST(AES_DECRYPT(medication_cost, get_enc_key()) AS DECIMAL(10,2)) as medication_cost,
+          CAST(AES_DECRYPT(lab_tests_cost, get_enc_key()) AS DECIMAL(10,2)) as lab_tests_cost
+        FROM bill WHERE bill_id = ?
+      `, [id]);
+      
+      if (currentBill.length === 0) {
+        return res.status(404).json({ error: 'Bill not found' });
+      }
+      
+      const newConsultationFee = consultation_fee !== undefined ? parseFloat(consultation_fee) : parseFloat(currentBill[0].consultation_fee);
+      const newMedicationCost = medication_cost !== undefined ? parseFloat(medication_cost) : parseFloat(currentBill[0].medication_cost);
+      const newLabTestsCost = lab_tests_cost !== undefined ? parseFloat(lab_tests_cost) : parseFloat(currentBill[0].lab_tests_cost);
+      
+      const newTotal = newConsultationFee + newMedicationCost + newLabTestsCost;
+      updateFields.push('total = AES_ENCRYPT(?, get_enc_key())');
+      values.push(newTotal.toFixed(2));
+    }
+    
+    if (status) {
+      updateFields.push('status = ?');
+      values.push(status.toUpperCase());
+    }
+    
+    values.push(id);
+    
+    const [result] = await dbStaff.query(
+      `UPDATE bill SET ${updateFields.join(', ')} WHERE bill_id = ?`,
+      values
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Bill updated successfully',
+      billId: id
+    });
+  } catch (error) {
+    console.error('Error updating bill:', error);
+    res.status(500).json({ error: 'Failed to update bill' });
+  }
+});
+
+// 17. DELETE - Delete bill (staff deletes bills)
 app.delete('/api/bills/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     
     console.log('Deleting bill:', id);
     
-    const [result] = await db.query('DELETE FROM bill WHERE bill_id = ?', [id]);
+    const [result] = await dbStaff.query('DELETE FROM bill WHERE bill_id = ?', [id]);
     
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Bill not found' });
@@ -798,5 +867,6 @@ app.listen(PORT, () => {
   console.log('    - POST   /api/bills              (generate bill)');
   console.log('    - GET    /api/bills              (get all bills)');
   console.log('    - GET    /api/bills/:id          (get bill by ID)');
+  console.log('    - PUT    /api/bills/:id          (update bill)');
   console.log('    - DELETE /api/bills/:id          (delete bill)');
 });
