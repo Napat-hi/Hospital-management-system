@@ -24,4 +24,5 @@ pool.getConnection((err, connection) => {
   connection.release();
 });
 
-module.exports = pool;
+// Export promise-based pool for async/await
+module.exports = pool.promise();
