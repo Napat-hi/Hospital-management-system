@@ -38,87 +38,87 @@ const apiCall = async (url, options = {}) => {
 };
 
 // ============================================
-// PATIENT OPERATIONS (Protected)
+// PATIENT OPERATIONS
 // ============================================
-const searchPatients = async (term, token) =>
-  apiCall(`${API_URL}/api/patients/search?q=${encodeURIComponent(term)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const searchPatients = async (term) =>
+  apiCall(`${API_URL}/api/patients/search?q=${encodeURIComponent(term)}`);
 
-const getPatients = async (token) =>
-  apiCall(`${API_URL}/api/patients`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getPatients = async () =>
+  apiCall(`${API_URL}/api/patients`);
 
-const getPatient = async (id, token) =>
-  apiCall(`${API_URL}/api/patients/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getPatient = async (id) =>
+  apiCall(`${API_URL}/api/patients/${id}`);
 
-const createPatient = async (patientData, token) =>
+const createPatient = async (patientData) =>
   apiCall(`${API_URL}/api/patients`, {
     method: "POST",
     body: JSON.stringify(patientData),
-    headers: { 
-      "Content-Type": "application/json; charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
   });
 
-const updatePatient = async (id, patientData, token) =>
+const updatePatient = async (id, patientData) =>
   apiCall(`${API_URL}/api/patients/${id}`, {
     method: "PUT",
     body: JSON.stringify(patientData),
-    headers: { Authorization: `Bearer ${token}` },
   });
 
 // ============================================
-// APPOINTMENT OPERATIONS (Protected)
+// APPOINTMENT OPERATIONS
 // ============================================
 
-const getAppointments = async (token) =>
-  apiCall(`${API_URL}/api/appointments`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getAppointments = async () =>
+  apiCall(`${API_URL}/api/appointments`);
 
-const createAppointment = async (appointmentData, token) =>
-  apiCall(`${API_URL}/api/appointments`, {
+const createAppointment = async (appointmentData) => {
+  // Convert camelCase to snake_case for backend
+  const backendData = {
+    patient_id: appointmentData.patientId,
+    doctor_id: appointmentData.doctorId,
+    appointment_date: appointmentData.appointmentDate,
+    appointment_time: appointmentData.appointmentTime,
+    reason: appointmentData.reason
+  };
+  
+  return apiCall(`${API_URL}/api/appointments`, {
     method: "POST",
-    body: JSON.stringify(appointmentData),
-    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(backendData),
   });
+};
 
-const updateAppointment = async (id, appointmentData, token) =>
-  apiCall(`${API_URL}/api/appointments/${id}`, {
+const updateAppointment = async (id, appointmentData) => {
+  // Convert camelCase to snake_case for backend
+  const backendData = {
+    patient_id: appointmentData.patientId,
+    doctor_id: appointmentData.doctorId,
+    appointment_date: appointmentData.appointmentDate,
+    appointment_time: appointmentData.appointmentTime,
+    reason: appointmentData.reason
+  };
+  
+  return apiCall(`${API_URL}/api/appointments/${id}`, {
     method: "PUT",
-    body: JSON.stringify(appointmentData),
-    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(backendData),
   });
+};
 
-const deleteAppointment = async (id, token) =>
+const deleteAppointment = async (id) =>
   apiCall(`${API_URL}/api/appointments/${id}`, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
   });
 
 // ============================================
-// DOCTOR OPERATIONS (Protected)
+// DOCTOR OPERATIONS
 // ============================================
 
-const getDoctors = async (token) =>
-  apiCall(`${API_URL}/api/doctors`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getDoctors = async () =>
+  apiCall(`${API_URL}/api/doctors`);
 
 // ============================================
-// BILL OPERATIONS (Protected)
+// BILL OPERATIONS
 // ============================================
 
 // Get all bills
-const getBills = async (token) =>
-  apiCall(`${API_URL}/api/bills`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getBills = async () =>
+  apiCall(`${API_URL}/api/bills`);
 
 // Get single bill by ID
 const getBill = async (id) => {
@@ -163,13 +163,11 @@ const deleteBill = async (id) => {
 };
 
 // ============================================
-// STAFF MANAGEMENT (Protected)
+// STAFF MANAGEMENT
 // ============================================
 
-const getStaff = async (token) =>
-  apiCall(`${API_URL}/api/staff`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+const getStaff = async () =>
+  apiCall(`${API_URL}/api/staff`);
 
 // ============================================
 // EXPORT ALL FUNCTIONS
