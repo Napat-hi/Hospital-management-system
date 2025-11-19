@@ -484,8 +484,10 @@ app.delete('/api/bills/:id', async (req, res) => {
   }
 });
 
-app.listen(5000, () => {
-  console.log('Backend running on http://localhost:5000');
+const PORT = process.env.PORT || 5001;
+
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
   console.log('');
   console.log('Available endpoints:');
   console.log('  Users:');

@@ -68,20 +68,24 @@ export default function Adminpage() {
   const photo = state.photo || "";
 
 const [listData, setListData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-const fetchUsers = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/users');
-    if (response.ok) {
-      const users = await response.json();
-      setListData(users);
-    } else {
-      console.error('Failed to fetch users');
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:5001/api/users');
+      if (response.ok) {
+        const users = await response.json();
+        setListData(users);
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching users:', error);
-  }
-};
+  };
 
 useEffect(() => {
   fetchUsers();
@@ -354,7 +358,7 @@ useEffect(() => {
 
     try {
       // TODO: Replace 'http://your-backend-url/api/users' with actual API endpoint
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch('http://localhost:5001/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -425,7 +429,7 @@ useEffect(() => {
     try {
       // TODO: Replace with actual API endpoint
       // This is a PATCH request to disable (soft delete), NOT a DELETE request
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/disable`, {
+      const response = await fetch(`http://localhost:5001/api/users/${userId}/disable`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -501,7 +505,7 @@ useEffect(() => {
 
     try {
       // TODO: Replace with actual API endpoint - use PUT or PATCH method
-      const response = await fetch(`http://localhost:5000/api/users/${selectedUserId}`, {
+      const response = await fetch(`http://localhost:5001/api/users/${selectedUserId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

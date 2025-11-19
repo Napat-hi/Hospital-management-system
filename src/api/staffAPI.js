@@ -1,7 +1,7 @@
 // Staff API Helper Functions
 // This file handles all API calls from the Staff page to the backend
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
 
 // Helper function to make API calls with error handling
 const apiCall = async (url, options = {}) => {

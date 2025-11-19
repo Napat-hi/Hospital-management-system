@@ -112,7 +112,7 @@
  *    REACT_APP_API_URL=http://your-backend-url
  *    
  *    Then use in code:
- *    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+ *    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
  */
 
 import React, { useMemo, useState, useEffect } from "react";
