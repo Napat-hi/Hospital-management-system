@@ -43,7 +43,7 @@ INSERT INTO user (username, password) VALUES
 ('phudit', 'phudit.sae'),
 
 -- Admin (ID 11)
-('admin', 'admin.adm');
+('admin', 'admin');
 
 -- =========================================================
 -- DOCTOR (with user_id foreign keys)

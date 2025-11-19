@@ -331,6 +331,44 @@ SELECT
   created_at
 FROM user;
 
+CREATE OR REPLACE VIEW v_doctor_decrypted AS
+SELECT
+  doctor_id,
+  first_name,
+  last_name,
+  department,
+  specialization,
+  CAST(AES_DECRYPT(email, get_enc_key()) AS CHAR(255)) AS email,
+  CAST(AES_DECRYPT(phone, get_enc_key()) AS CHAR(64)) AS phone,
+  user_id,
+  hire_date
+FROM doctor;
+
+CREATE OR REPLACE VIEW v_staff_decrypted AS
+SELECT
+  staff_id,
+  first_name,
+  last_name,
+  position,
+  department,
+  CAST(AES_DECRYPT(email, get_enc_key()) AS CHAR(255)) AS email,
+  CAST(AES_DECRYPT(phone, get_enc_key()) AS CHAR(64)) AS phone,
+  user_id,
+  hire_date
+FROM staff;
+
+CREATE OR REPLACE VIEW v_appointment_decrypted AS
+SELECT
+  appointment_id,
+  patient_id,
+  doctor_id,
+  appointment_date,
+  appointment_time,
+  CAST(AES_DECRYPT(reason, get_enc_key()) AS CHAR(255)) AS reason,
+  status,
+  created_at
+FROM appointment;
+
 /* =========================================================
    BUSINESS TRIGGER
    ========================================================= */
