@@ -254,7 +254,7 @@ app.patch('/api/users/:id/disable', async (req, res) => {
       return res.status(400).json({ error: 'Role is required to delete user' });
     }
     
-    const connection = await db.getConnection();
+    const connection = await dbAdmin.getConnection();
     await connection.beginTransaction();
     
     try {
