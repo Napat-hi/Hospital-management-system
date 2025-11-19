@@ -75,28 +75,28 @@ INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_ti
 -- =========================================================
 -- USER
 -- =========================================================
-INSERT INTO user (username, password, role) VALUES
-('ananda.cha', '12031985', 'patient'),
-('kanya.tho', '08071990', 'patient'),
-('somchai.rat', '24011978', 'patient'),
-('mayuree.nim', '17091995', 'patient'),
-('arthit.sir', '05112000', 'patient'),
-('benjamas.cha', '28041988', 'patient'),
-('preecha.suk', '10121975', 'patient'),
-('thanya.won', '15021998', 'patient'),
-('surasak.boo', '06061982', 'patient'),
-('manita.yod', '25102001', 'patient'),
+INSERT INTO user (username, password) VALUES
+('ananda.cha', '12031985'),
+('kanya.tho', '08071990'),
+('somchai.rat', '24011978'),
+('mayuree.nim', '17091995'),
+('arthit.sir', '05112000'),
+('benjamas.cha', '28041988'),
+('preecha.suk', '10121975'),
+('thanya.won', '15021998'),
+('surasak.boo', '06061982'),
+('manita.yod', '25102001'),
 
-('pawat.kit', '01051980', 'doctor'),
-('siriwan.boo', '15081979', 'doctor'),
-('thanakorn.mee', '20011985', 'doctor'),
-('jirapat.sun', '07071981', 'doctor'),
-('kanchana.sri', '10092083', 'doctor'),
+('pawat.kit', '01051980'),
+('siriwan.boo', '15081979'),
+('thanakorn.mee', '20011985'),
+('jirapat.sun', '07071981'),
+('kanchana.sri', '10092083'),
 
-('nattapong.wil', '15011990', 'staff'),
-('chutima.kor', '20021993', 'staff'),
-('wirat.tha', '12061987', 'staff'),
-('somsri.kae', '01091985', 'staff'),
-('phudit.sae', '18041988', 'staff'),
+('nattapong.wil', '15011990'),
+('chutima.kor', '20021993'),
+('wirat.tha', '12061987'),
+('somsri.kae', '01091985'),
+('phudit.sae', '18041988'),
 
-('admin.admin', 'admin', 'admin');
+('admin.admin', 'admin');
