@@ -125,12 +125,40 @@ const getBill = async (id) => {
   return apiCall(`${API_URL}/api/bills/${id}`);
 };
 
+// Generate bill for an appointment
+const generateBill = async (billData) => {
+  console.log('generateBill received:', billData);
+  
+  // Convert camelCase to snake_case for backend
+  // Note: patient_id is automatically retrieved by backend from appointment
+  const backendData = {
+    appointment_id: billData.appointmentId,
+    consultation_fee: billData.consultationFee,
+    medication_cost: billData.medicationCost || 0,
+    lab_tests_cost: billData.labTestsCost || 0
+  };
+  
+  console.log('Converted to backend format:', backendData);
+  
+  return apiCall(`${API_URL}/api/bills`, {
+    method: 'POST',
+    body: JSON.stringify(backendData),
+  });
+};
+
 // Update bill
 const updateBill = async (id, billData) => {
   console.log('staffAPI.updateBill called with:', { id, billData });
   return apiCall(`${API_URL}/api/bills/${id}`, {
     method: 'PUT',
     body: JSON.stringify(billData),
+  });
+};
+
+// Delete bill
+const deleteBill = async (id) => {
+  return apiCall(`${API_URL}/api/bills/${id}`, {
+    method: 'DELETE',
   });
 };
 
@@ -164,11 +192,13 @@ export const staffAPI = {
   // Doctors
   getDoctors,
 
-  // Bills
-  getBills,
+  // Billing
   generateBill,
   getBills,
   getBill,
   updateBill,
   deleteBill,
+  
+  // Staff
+  getStaff,
 };
