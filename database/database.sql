@@ -43,6 +43,7 @@ CREATE TABLE doctor (
   email_hash     CHAR(64),
   phone          VARBINARY(64),
   phone_hash     CHAR(64),
+  user_id        INT,
   hire_date      DATE,
   UNIQUE KEY uq_doctor_email_hash (email_hash),
   KEY ix_doctor_phone_hash (phone_hash)
@@ -58,8 +59,8 @@ CREATE TABLE staff (
   email_hash CHAR(64),
   phone      VARBINARY(64),
   phone_hash CHAR(64),
+  user_id    INT,
   hire_date  DATE,
-  status     ENUM('ACTIVE','INACTIVE','SUSPENDED') DEFAULT 'ACTIVE',
   UNIQUE KEY uq_staff_email_hash (email_hash),
   KEY ix_staff_phone_hash (phone_hash)
 ) ENGINE=InnoDB;
@@ -95,8 +96,7 @@ CREATE TABLE appointment (
 CREATE TABLE user (
   user_id    INT AUTO_INCREMENT PRIMARY KEY,
   username   VARBINARY(80),
-  password   CHAR(64) NOT NULL, -- SHA-256 hash
-  role       ENUM('admin','staff','doctor','patient') NOT NULL,
+  password   CHAR(64) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -127,6 +127,23 @@ ALTER TABLE appointment
   ADD CONSTRAINT fk_appt_doctor FOREIGN KEY (doctor_id)
   REFERENCES doctor(doctor_id)
   ON UPDATE CASCADE ON DELETE SET NULL;
+
+-- Doctor ↔ user_account
+ALTER TABLE doctor
+  ADD CONSTRAINT fk_doctor_user
+    FOREIGN KEY (user_id)
+    REFERENCES user(user_id)
+    ON UPDATE RESTRICT
+    ON DELETE CASCADE;
+
+-- Staff ↔ user_account
+ALTER TABLE staff
+  ADD CONSTRAINT fk_staff_user
+    FOREIGN KEY (user_id)
+    REFERENCES user(user_id)
+    ON UPDATE RESTRICT
+    ON DELETE CASCADE;
+
 
 /* =========================================================
    ENCRYPTION KEY MANAGEMENT
@@ -252,7 +269,7 @@ DELIMITER ;
    VIEWS (DECRYPTED OUTPUT)
    ========================================================= */
 
-CREATE OR REPLACE VIEW v_patient_clear AS
+CREATE OR REPLACE VIEW v_patient_decrypted AS
 SELECT
   patient_id,
   CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR(80)) AS first_name,
@@ -266,7 +283,7 @@ SELECT
   created_at
 FROM patient;
 
-CREATE OR REPLACE VIEW v_bill_clear AS
+CREATE OR REPLACE VIEW v_bill_decrypted AS
 SELECT
   bill_id,
   patient_id,
@@ -275,7 +292,7 @@ SELECT
   created_at
 FROM bill;
 
-CREATE OR REPLACE VIEW v_payment_clear AS
+CREATE OR REPLACE VIEW v_payment_decrypted AS
 SELECT
   payment_id,
   bill_id,
@@ -285,11 +302,10 @@ SELECT
   received_by
 FROM payment;
 
-CREATE OR REPLACE VIEW v_user_clear AS
+CREATE OR REPLACE VIEW v_user_decrypted AS
 SELECT
   user_id,
   CAST(AES_DECRYPT(username, get_enc_key()) AS CHAR(80)) AS username,
-  role,
   created_at
 FROM user;
 
@@ -367,3 +383,78 @@ BEGIN
   SET p_appointment_id = LAST_INSERT_ID();
 END$$
 DELIMITER ;
+
+
+/* =========================================================
+   USER CREATION
+   ========================================================= */
+DROP USER IF EXISTS 'admin_user'@'%';
+DROP USER IF EXISTS 'doctor_user'@'%';
+DROP USER IF EXISTS 'staff_user'@'%';
+
+CREATE USER 'admin_user'@'%' IDENTIFIED BY 'AdminPassword123!';
+CREATE USER 'doctor_user'@'%' IDENTIFIED BY 'DoctorPassword123!';
+CREATE USER 'staff_user'@'%' IDENTIFIED BY 'StaffPassword123!';
+
+
+/* =========================================================
+   PRIVILEGES (Based on requirement matrix)
+   - Encrypted tables grant access to decrypted VIEWS ONLY
+   ========================================================= */
+
+/* ----------------------------------------------------------
+   ADMIN USER
+   ---------------------------------------------------------- */
+
+-- Doctor table → R
+GRANT SELECT ON HMS.doctor TO 'admin_user'@'%';
+
+-- Staff table → CRU
+GRANT SELECT, INSERT, UPDATE ON HMS.staff TO 'admin_user'@'%';
+
+-- Appointment → no privileges
+-- Bill → no privileges
+-- BUT encrypted: if needed they must use view only
+
+-- User table → CRUD (ON VIEW ONLY)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%';
+
+
+/* ----------------------------------------------------------
+   DOCTOR USER
+   ---------------------------------------------------------- */
+
+-- Doctor table → CRUD
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.doctor TO 'doctor_user'@'%';
+
+-- Staff table → no access
+
+-- Appointment table → RU
+GRANT SELECT, UPDATE ON HMS.appointment TO 'doctor_user'@'%';
+
+-- Bill → no access (encrypted anyway, must NOT be granted)
+-- User → no access
+
+
+/* ----------------------------------------------------------
+   STAFF USER
+   ---------------------------------------------------------- */
+
+-- Doctor table → no access
+
+-- Staff table → CRUD
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.staff TO 'staff_user'@'%';
+
+-- Appointment table → CRUD
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.appointment TO 'staff_user'@'%';
+
+-- Bill → CRUD (ON VIEW ONLY)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_bill_decrypted TO 'staff_user'@'%';
+
+-- Payment → CRUD (ON VIEW ONLY)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_payment_decrypted TO 'staff_user'@'%';
+
+-- User table → no access
+
+
+FLUSH PRIVILEGES;
