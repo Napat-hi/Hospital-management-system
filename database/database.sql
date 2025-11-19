@@ -94,7 +94,7 @@ CREATE TABLE appointment (
 ) ENGINE=InnoDB;
 
 CREATE TABLE user (
-  user_id    INT AUTO_INCREMENT,
+  user_id    INT AUTO_INCREMENT PRIMARY KEY,
   username   VARBINARY(80),
   password   CHAR(64) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -132,7 +132,7 @@ ALTER TABLE appointment
 ALTER TABLE doctor
   ADD CONSTRAINT fk_doctor_user
     FOREIGN KEY (user_id)
-    REFERENCES user_account(user_id)
+    REFERENCES user(user_id)
     ON UPDATE RESTRICT
     ON DELETE CASCADE;
 
@@ -140,7 +140,7 @@ ALTER TABLE doctor
 ALTER TABLE staff
   ADD CONSTRAINT fk_staff_user
     FOREIGN KEY (user_id)
-    REFERENCES user_account(user_id)
+    REFERENCES user(user_id)
     ON UPDATE RESTRICT
     ON DELETE CASCADE;
 
@@ -388,6 +388,9 @@ DELIMITER ;
 /* =========================================================
    USER CREATION
    ========================================================= */
+DROP USER IF EXISTS 'admin_user'@'%';
+DROP USER IF EXISTS 'doctor_user'@'%';
+DROP USER IF EXISTS 'staff_user'@'%';
 
 CREATE USER 'admin_user'@'%' IDENTIFIED BY 'AdminPassword123!';
 CREATE USER 'doctor_user'@'%' IDENTIFIED BY 'DoctorPassword123!';
@@ -399,9 +402,9 @@ CREATE USER 'staff_user'@'%' IDENTIFIED BY 'StaffPassword123!';
    - Encrypted tables grant access to decrypted VIEWS ONLY
    ========================================================= */
 
-------------------------------------------------------------
--- ADMIN USER
-------------------------------------------------------------
+/* ----------------------------------------------------------
+   ADMIN USER
+   ---------------------------------------------------------- */
 
 -- Doctor table → R
 GRANT SELECT ON HMS.doctor TO 'admin_user'@'%';
@@ -417,9 +420,9 @@ GRANT SELECT, INSERT, UPDATE ON HMS.staff TO 'admin_user'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%';
 
 
-------------------------------------------------------------
--- DOCTOR USER
-------------------------------------------------------------
+/* ----------------------------------------------------------
+   DOCTOR USER
+   ---------------------------------------------------------- */
 
 -- Doctor table → CRUD
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.doctor TO 'doctor_user'@'%';
@@ -433,9 +436,9 @@ GRANT SELECT, UPDATE ON HMS.appointment TO 'doctor_user'@'%';
 -- User → no access
 
 
-------------------------------------------------------------
--- STAFF USER
-------------------------------------------------------------
+/* ----------------------------------------------------------
+   STAFF USER
+   ---------------------------------------------------------- */
 
 -- Doctor table → no access
 
@@ -454,7 +457,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_payment_decrypted TO 'staff_user'@
 -- User table → no access
 
 
-------------------------------------------------------------
--- APPLY CHANGES
-------------------------------------------------------------
 FLUSH PRIVILEGES;
