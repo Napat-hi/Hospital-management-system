@@ -39,7 +39,7 @@ router.post("/login", async (req, res) => {
   if (demoUser && demoUser.password === password) {
     const token = jwt.sign(
       { username, role: demoUser.role },
-      process.env.JWT_SECRET || "your_secret_key",
+      process.env.JWT_SECRET || "DLWQ12",
       { expiresIn: "1h" }
     );
     return res.json({ token, username, role: demoUser.role, firstName: demoUser.firstName, lastName: demoUser.lastName });
@@ -62,7 +62,7 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
-      const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET || "your_secret_key", { expiresIn: "1h" });
+      const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET || "DLWQ12", { expiresIn: "1h" });
       return res.json({ token, username: user.username, role: user.role });
     }
 
