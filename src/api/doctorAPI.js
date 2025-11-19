@@ -1,7 +1,7 @@
 // Simple API helper for Doctor Page
 // This file makes it easy to call backend endpoints
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
 
 // Helper function to make API calls
 async function apiCall(endpoint, options = {}) {
