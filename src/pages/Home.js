@@ -144,9 +144,7 @@ function Homepage() {
               </button>
             </form>
 
-            <p className="text-muted mt-3 mb-0">
-              Code by <a href="#" className="text-decoration-none">Hospital</a>
-            </p>
+
           </div>
         </div>
       </div>
