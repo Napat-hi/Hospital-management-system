@@ -42,12 +42,12 @@
  * 
  *    Appointment Object: {
  *      id: number,
- *      patient_id: number,
+ *      patientId: number,
  *      patientName: string,
- *      doctor_id: number,
+ *      doctorId: number,
  *      doctorName: string,
- *      appointment_date: string (format: "YYYY-MM-DD"),
- *      appointment_time: string (format: "HH:MM AM/PM"),
+ *      appointmentDate: string (format: "YYYY-MM-DD"),
+ *      appointmentTime: string (format: "HH:MM AM/PM"),
  *      reason: string,
  *      status: "scheduled" | "completed"
  *    }
@@ -61,10 +61,10 @@
  *    Bill Object: {
  *      id: number,
  *      appointmentId: number,
- *      patient_id: number,
+ *      patientId: number,
  *      patientName: string,
  *      doctorName: string,
- *      appointment_date: string,
+ *      appointmentDate: string,
  *      consultationFee: number,
  *      medicationCost: number,
  *      labTestsCost: number,
@@ -116,22 +116,11 @@
  */
 
 import React, { useMemo, useState, useEffect } from "react";
-import { getStaff, disableStaff, activateStaff } from "../api/fetch";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
 import { staffAPI } from "../api/staffAPI";
-
-const calculateAge = (dob) => {
-  if (!dob) return "";
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const m = today.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-  return age;
-};
 
 export default function Staffpage() {
   const location = useLocation();
@@ -143,7 +132,6 @@ export default function Staffpage() {
   const l_name = state.lastnames || "User";
   const photo  = state.photo || "";
   const listData = Array.isArray(state.listdata) ? state.listdata : [];
-  const [staffList, setStaffList] = useState([]);
 
   // ---- UI state ----
   const [view, setView] = useState("appointments"); // 'patients' | 'billing' | 'appointments'
@@ -153,7 +141,7 @@ export default function Staffpage() {
   
   // Patient view states
   const [showPatientResults, setShowPatientResults] = useState(false);
-  const [selectedpatient_id, setSelectedpatient_id] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [mainPatientSearchQuery, setMainPatientSearchQuery] = useState("");
   const [showCreatePatientForm, setShowCreatePatientForm] = useState(false);
@@ -187,18 +175,18 @@ export default function Staffpage() {
   const [patientSearchQuery, setPatientSearchQuery] = useState("");
   const [doctorSearchQuery, setDoctorSearchQuery] = useState("");
   const [appointmentFormData, setAppointmentFormData] = useState({
-    patient_id: "",
-    doctor_id: "",
-    appointment_date: "",
-    appointment_time: "",
+    patientId: "",
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
     reason: ""
   });
   const [editAppointmentFormData, setEditAppointmentFormData] = useState({
     id: "",
-    patient_id: "",
-    doctor_id: "",
-    appointment_date: "",
-    appointment_time: "",
+    patientId: "",
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
     reason: ""
   });
   
@@ -233,10 +221,10 @@ export default function Staffpage() {
   });
 
   const [appointmentFormErrors, setAppointmentFormErrors] = useState({
-    patient_id: "",
-    doctor_id: "",
-    appointment_date: "",
-    appointment_time: "",
+    patientId: "",
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
     reason: ""
   });
 
@@ -254,36 +242,33 @@ export default function Staffpage() {
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
   // Load all data on component mount
   useEffect(() => {
     loadPatients();
     loadAppointments();
     loadDoctors();
     loadBills();
-    loadStaff();
   }, []);
 
   const loadPatients = async () => {
-try {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    const data = await staffAPI.getPatients(token);
-    setPatients(data);
-  } catch (error) {
-    console.error("Error loading patients:", error);
-    setError("Failed to load patients");
-  } finally {
-    setLoading(false);
-  }
+    try {
+      setLoading(true);
+      const data = await staffAPI.getPatients();
+      setPatients(data);
+    } catch (error) {
+      console.error('Error loading patients:', error);
+      alert('Failed to load patients. Make sure backend is running!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadAppointments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const data = await staffAPI.getAppointments(token);
+      const data = await staffAPI.getAppointments();
       setAppointments(data);
     } catch (error) {
       console.error('Error loading appointments:', error);
@@ -311,18 +296,6 @@ try {
       console.error('Error loading bills:', error);
     }
   };
-
-  const loadStaff = async () => {
-  try {
-      const token = localStorage.getItem("token");
-      const data = await staffAPI.getStaff(token);
-      setStaffList(data);
-  } catch (error) {
-    console.error("Error loading staff:", error);
-    alert("Failed to load staff. Make sure backend is running!");
-  }
-};
-
 
   // ---- เมนูซ้าย (สไตล์เดียวกับ Doctorpage) ----
   const menu = [
@@ -369,25 +342,6 @@ try {
     // Navigate back to login page
     navigate("/");
   };
-
-  const toggleStaffStatus = async (id, currentStatus) => {
-  try {
-    if (currentStatus === "ACTIVE") {
-      await disableStaff(id);
-      setStaffList(prev =>
-        prev.map(s => s.id === id ? { ...s, status: "INACTIVE" } : s)
-      );
-    } else {
-      await activateStaff(id);
-      setStaffList(prev =>
-        prev.map(s => s.id === id ? { ...s, status: "ACTIVE" } : s)
-      );
-    }
-  } catch (error) {
-    console.error("Error toggling staff status:", error);
-    alert("Failed to update staff status.");
-  }
-};
 
   // ---- Validation helper functions ----
   const validateEmail = (email) => {
@@ -472,39 +426,39 @@ try {
   // ---- Validate appointment form ----
   const validateAppointmentForm = () => {
     const errors = {
-      patient_id: "",
-      doctor_id: "",
-      appointment_date: "",
-      appointment_time: "",
+      patientId: "",
+      doctorId: "",
+      appointmentDate: "",
+      appointmentTime: "",
       reason: ""
     };
     let isValid = true;
 
-    if (!appointmentFormData.patient_id) {
-      errors.patient_id = "Please select a patient";
+    if (!appointmentFormData.patientId) {
+      errors.patientId = "Please select a patient";
       isValid = false;
     }
 
-    if (!appointmentFormData.doctor_id) {
-      errors.doctor_id = "Please select a doctor";
+    if (!appointmentFormData.doctorId) {
+      errors.doctorId = "Please select a doctor";
       isValid = false;
     }
 
-    if (!appointmentFormData.appointment_date) {
-      errors.appointment_date = "Appointment date is required";
+    if (!appointmentFormData.appointmentDate) {
+      errors.appointmentDate = "Appointment date is required";
       isValid = false;
     } else {
-      const appointment_date = new Date(appointmentFormData.appointment_date);
+      const appointmentDate = new Date(appointmentFormData.appointmentDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (appointment_date < today) {
-        errors.appointment_date = "Appointment date cannot be in the past";
+      if (appointmentDate < today) {
+        errors.appointmentDate = "Appointment date cannot be in the past";
         isValid = false;
       }
     }
 
-    if (!appointmentFormData.appointment_time) {
-      errors.appointment_time = "Appointment time is required";
+    if (!appointmentFormData.appointmentTime) {
+      errors.appointmentTime = "Appointment time is required";
       isValid = false;
     }
 
@@ -521,10 +475,10 @@ try {
     // Show validation errors to user
     if (!isValid) {
       const errorMessages = [];
-      if (errors.patient_id) errorMessages.push('• ' + errors.patient_id);
-      if (errors.doctor_id) errorMessages.push('• ' + errors.doctor_id);
-      if (errors.appointment_date) errorMessages.push('• ' + errors.appointment_date);
-      if (errors.appointment_time) errorMessages.push('• ' + errors.appointment_time);
+      if (errors.patientId) errorMessages.push('• ' + errors.patientId);
+      if (errors.doctorId) errorMessages.push('• ' + errors.doctorId);
+      if (errors.appointmentDate) errorMessages.push('• ' + errors.appointmentDate);
+      if (errors.appointmentTime) errorMessages.push('• ' + errors.appointmentTime);
       if (errors.reason) errorMessages.push('• ' + errors.reason);
       
       if (errorMessages.length > 0) {
@@ -573,37 +527,22 @@ try {
   };
 
   // ---- Handle patient search ----
-  const handlePatientSearch = async () => {
-    console.log("Searching patients with:", mainPatientSearchQuery);
-  try {
-    const token = localStorage.getItem("token");
-    const results = await staffAPI.searchPatients(mainPatientSearchQuery, token);
-    setPatients(results); // or setSearchResults if you use a separate state
+  const handlePatientSearch = () => {
     setShowPatientResults(true);
-    setSelectedPatient(null);
-  } catch (error) {
-    console.error("Error searching patients:", error);
-    alert("Failed to search patients. Please check your connection.");
-  }
-};
-
+  };
 
   // ---- Handle patient selection ----
-const handleViewPatient = async () => {
-  if (!selectedpatient_id) {
-    alert("Please select a patient to view");
-    return;
-  }
+  const handleViewPatient = () => {
+    if (!selectedPatientId) {
+      alert("Please select a patient to view");
+      return;
+    }
 
-  try {
-    const token = localStorage.getItem("token");
-    const patient = await staffAPI.getPatient(selectedpatient_id, token);
-    setSelectedPatient(patient);
-  } catch (error) {
-    console.error("Error fetching patient:", error);
-    alert("Failed to fetch patient details");
-  }
-};
+    const patient = patients.find(p => p.id === parseInt(selectedPatientId));
+    if (patient) {
+      setSelectedPatient(patient);
+    }
+  };
 
   // ---- Handle patient form input changes ----
   const handlePatientInputChange = (e) => {
@@ -649,7 +588,7 @@ const handleViewPatient = async () => {
   // TODO: Replace with actual backend endpoint
   const handleCreatePatient = async (e) => {
     e.preventDefault();
-    console.log("Creating patient with:", patientFormData);
+    
     // Validate form
     if (!validatePatientForm()) {
       return;
@@ -657,16 +596,7 @@ const handleViewPatient = async () => {
 
     try {
       // Call backend API to create patient
-      console.log("PatientFormData before send:", patientFormData);
-
-      const cleanData = Object.fromEntries(
-  Object.entries(patientFormData).map(([key, value]) => [key, value.trim()])
-);
-
-      console.log("CleanData being sent:", cleanData);
-
-await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
-
+      await staffAPI.createPatient(patientFormData);
       
       alert("Patient created successfully!");
       
@@ -715,7 +645,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
 
     try {
       // Call backend API to update patient
-      await staffAPI.updatePatient(editPatientFormData.id, editPatientFormData, localStorage.getItem("token"));
+      await staffAPI.updatePatient(editPatientFormData.id, editPatientFormData);
       
       alert("Patient information updated successfully!");
       
@@ -790,10 +720,10 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
     // Convert time to 24-hour format for the time input field
     setEditAppointmentFormData({
       id: appointment.id,
-      patient_id: appointment.patient_id,
-      doctor_id: appointment.doctor_id,
-      appointment_date: appointment.appointment_date,
-      appointment_time: convertTo24Hour(appointment.appointment_time),
+      patientId: appointment.patientId,
+      doctorId: appointment.doctorId,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: convertTo24Hour(appointment.appointmentTime),
       reason: appointment.reason
     });
     setSelectedAppointmentId(appointment.id);
@@ -854,10 +784,10 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
       console.log('Validation failed - check errors below');
       // Show validation errors to user
       const errorMessages = [];
-      if (appointmentFormErrors.patient_id) errorMessages.push(appointmentFormErrors.patient_id);
-      if (appointmentFormErrors.doctor_id) errorMessages.push(appointmentFormErrors.doctor_id);
-      if (appointmentFormErrors.appointment_date) errorMessages.push(appointmentFormErrors.appointment_date);
-      if (appointmentFormErrors.appointment_time) errorMessages.push(appointmentFormErrors.appointment_time);
+      if (appointmentFormErrors.patientId) errorMessages.push(appointmentFormErrors.patientId);
+      if (appointmentFormErrors.doctorId) errorMessages.push(appointmentFormErrors.doctorId);
+      if (appointmentFormErrors.appointmentDate) errorMessages.push(appointmentFormErrors.appointmentDate);
+      if (appointmentFormErrors.appointmentTime) errorMessages.push(appointmentFormErrors.appointmentTime);
       if (appointmentFormErrors.reason) errorMessages.push(appointmentFormErrors.reason);
       
       if (errorMessages.length > 0) {
@@ -870,7 +800,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
 
     try {
       // Call backend API to create appointment
-      const result = await staffAPI.createAppointment(appointmentFormData, localStorage.getItem("token"));
+      const result = await staffAPI.createAppointment(appointmentFormData);
       console.log('API response:', result);
       
       alert("Appointment created successfully!");
@@ -880,17 +810,17 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
       
       // Reset form
       setAppointmentFormData({
-        patient_id: "",
-        doctor_id: "",
-        appointment_date: "",
-        appointment_time: "",
+        patientId: "",
+        doctorId: "",
+        appointmentDate: "",
+        appointmentTime: "",
         reason: ""
       });
       setAppointmentFormErrors({
-        patient_id: "",
-        doctor_id: "",
-        appointment_date: "",
-        appointment_time: "",
+        patientId: "",
+        doctorId: "",
+        appointmentDate: "",
+        appointmentTime: "",
         reason: ""
       });
       setPatientSearchQuery("");
@@ -909,8 +839,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
     e.preventDefault();
     
     // Validate required fields
-    if (!editAppointmentFormData.patient_id || !editAppointmentFormData.doctor_id || 
-        !editAppointmentFormData.appointment_date || !editAppointmentFormData.appointment_time || 
+    if (!editAppointmentFormData.patientId || !editAppointmentFormData.doctorId || 
+        !editAppointmentFormData.appointmentDate || !editAppointmentFormData.appointmentTime || 
         !editAppointmentFormData.reason) {
       alert("Please fill in all required fields");
       return;
@@ -918,7 +848,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
 
     try {
       // Call backend API to update appointment
-      await staffAPI.updateAppointment(editAppointmentFormData.id, editAppointmentFormData, localStorage.getItem("token"));
+      await staffAPI.updateAppointment(editAppointmentFormData.id, editAppointmentFormData);
       
       alert("Appointment updated successfully!");
       
@@ -948,7 +878,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
 
     try {
       // Call backend API to delete appointment
-      await staffAPI.deleteAppointment(appointmentId, localStorage.getItem("token"));
+      await staffAPI.deleteAppointment(appointmentId);
       
       alert("Appointment deleted successfully!");
       
@@ -1018,7 +948,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
       console.log('Sending bill data:', billData);
 
       // Call backend API to generate bill
-      const newBill = await staffAPI.generatBill(billFormData, localStorage.getItem("token"));
+      const newBill = await staffAPI.generateBill(billData);
       
       setGeneratedBill(newBill);
       
@@ -1126,18 +1056,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
     }
 
     try {
-      const token = localStorage.getItem("token");
-      // Prefer a dedicated deleteBill API; fallback to other names if not available
-      if (staffAPI.deleteBill) {
-        await staffAPI.deleteBill(billId, token);
-      } else if (staffAPI.deleteGeneratedBill) {
-        await staffAPI.deleteGeneratedBill(billId, token);
-      } else if (staffAPI.deleteAppointment) {
-        // last resort: call deleteAppointment only if your backend expects the bill id there
-        await staffAPI.deleteAppointment(billId, token);
-      } else {
-        throw new Error("No delete method available on staffAPI");
-      }
+      // Call backend API to delete bill
+      await staffAPI.deleteBill(billId);
       
       // Reload bills from database
       await loadBills();
@@ -1409,8 +1329,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                           <label className="form-label">Select Patient</label>
                           <select 
                             className="form-select"
-                            value={selectedpatient_id}
-                            onChange={(e) => setSelectedpatient_id(e.target.value)}
+                            value={selectedPatientId}
+                            onChange={(e) => setSelectedPatientId(e.target.value)}
                           >
                             <option value="">Select a patient to view</option>
                             {mainSearchFilteredPatients.map((patient) => (
@@ -1485,7 +1405,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                           <input 
                             type="text" 
                             className="form-control" 
-                            value={`${calculateAge(selectedPatient.dob)} years old`}
+                            value={`${new Date().getFullYear() - new Date(selectedPatient.dob).getFullYear()} years old`}
                             disabled
                           />
                         </div>
@@ -1699,8 +1619,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <label className="form-label">Patient <span className="text-danger">*</span></label>
                             <select 
                               className="form-select"
-                              name="patient_id"
-                              value={editAppointmentFormData.patient_id}
+                              name="patientId"
+                              value={editAppointmentFormData.patientId}
                               onChange={handleEditAppointmentInputChange}
                               required
                             >
@@ -1716,8 +1636,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <label className="form-label">Doctor <span className="text-danger">*</span></label>
                             <select 
                               className="form-select"
-                              name="doctor_id"
-                              value={editAppointmentFormData.doctor_id}
+                              name="doctorId"
+                              value={editAppointmentFormData.doctorId}
                               onChange={handleEditAppointmentInputChange}
                               required
                             >
@@ -1734,8 +1654,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <input 
                               type="date" 
                               className="form-control" 
-                              name="appointment_date"
-                              value={editAppointmentFormData.appointment_date}
+                              name="appointmentDate"
+                              value={editAppointmentFormData.appointmentDate}
                               onChange={handleEditAppointmentInputChange}
                               required
                             />
@@ -1745,8 +1665,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <input 
                               type="time" 
                               className="form-control" 
-                              name="appointment_time"
-                              value={editAppointmentFormData.appointment_time}
+                              name="appointmentTime"
+                              value={editAppointmentFormData.appointmentTime}
                               onChange={handleEditAppointmentInputChange}
                               required
                             />
@@ -1794,8 +1714,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             />
                             <select 
                               className="form-select"
-                              name="patient_id"
-                              value={appointmentFormData.patient_id}
+                              name="patientId"
+                              value={appointmentFormData.patientId}
                               onChange={handleAppointmentInputChange}
                               required
                             >
@@ -1819,8 +1739,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             />
                             <select 
                               className="form-select"
-                              name="doctor_id"
-                              value={appointmentFormData.doctor_id}
+                              name="doctorId"
+                              value={appointmentFormData.doctorId}
                               onChange={handleAppointmentInputChange}
                               required
                             >
@@ -1838,8 +1758,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <input 
                               type="date" 
                               className="form-control" 
-                              name="appointment_date"
-                              value={appointmentFormData.appointment_date}
+                              name="appointmentDate"
+                              value={appointmentFormData.appointmentDate}
                               onChange={handleAppointmentInputChange}
                               required
                             />
@@ -1849,8 +1769,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <input 
                               type="time" 
                               className="form-control" 
-                              name="appointment_time"
-                              value={appointmentFormData.appointment_time}
+                              name="appointmentTime"
+                              value={appointmentFormData.appointmentTime}
                               onChange={handleAppointmentInputChange}
                               required
                             />
@@ -1871,7 +1791,9 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                             <button 
                               type="submit" 
                               className="btn btn-primary"
-                              onClick={handleCreateAppointment}
+                              onClick={(e) => {
+                                console.log('Button clicked!');
+                              }}
                             >
                               Create Appointment
                             </button>
@@ -1908,8 +1830,8 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                           
                           <div className="mb-2">
                             <small className="text-muted d-block">Date & Time</small>
-                            <strong>{appointment.appointment_date}</strong>
-                            <span className="ms-2 text-primary">{appointment.appointment_time}</span>
+                            <strong>{appointment.appointmentDate}</strong>
+                            <span className="ms-2 text-primary">{appointment.appointmentTime}</span>
                           </div>
                           
                           <div className="mb-0">
@@ -1974,7 +1896,7 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                               .filter(a => a.status === 'completed')
                               .map((appointment) => (
                                 <option key={appointment.id} value={appointment.id}>
-                                  #{appointment.id} - {appointment.patientName} with {appointment.doctorName} on {appointment.appointment_date}
+                                  #{appointment.id} - {appointment.patientName} with {appointment.doctorName} on {appointment.appointmentDate}
                                 </option>
                               ))}
                           </select>
@@ -2316,33 +2238,6 @@ await staffAPI.createPatient(cleanData, localStorage.getItem("token"));
                 )}
               </>
             )}
-            {view === "staff" && (
-  <div>
-    <h3>Staff List</h3>
-    <table border="1" cellPadding="8">
-      <thead>
-        <tr>
-          <th>Name</th><th>Position</th><th>Department</th><th>Status</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {staffList.map(s => (
-          <tr key={s.id}>
-            <td>{s.first_name} {s.last_name}</td>
-            <td>{s.position}</td>
-            <td>{s.department}</td>
-            <td>{s.status}</td>
-            <td>
-              <button onClick={() => toggleStaffStatus(s.id, s.status)}>
-                {s.status === "ACTIVE" ? "Disable" : "Activate"}
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
           </main>
         </div>
       </div>
