@@ -146,7 +146,7 @@ function App() {
                     setErrors(prev => ({ ...prev, username: "" }));
                   }}
                 />
-                <label htmlFor="username">Username (or first_name)</label>
+                <label htmlFor="username">Username</label>
                 {errors.username && (
                   <div className="invalid-feedback">{errors.username}</div>
                 )}
@@ -164,7 +164,7 @@ function App() {
                     setErrors(prev => ({ ...prev, password: "" }));
                   }}
                 />
-                <label htmlFor="password">Password (or last_name)</label>
+                <label htmlFor="password">Password</label>
                 {errors.password && (
                   <div className="invalid-feedback">{errors.password}</div>
                 )}
