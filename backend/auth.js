@@ -28,23 +28,6 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "Username and password required" });
   }
 
-  // Demo users
-  const demoUsers = {
-    admin: { password: "admin", role: "admin", firstName: "Admin", lastName: "User" },
-    staff: { password: "staff", role: "staff", firstName: "Staff", lastName: "User" },
-    doctor: { password: "doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
-  };
-
-  const demoUser = demoUsers[username];
-  if (demoUser && demoUser.password === password) {
-    const token = jwt.sign(
-      { username, role: demoUser.role },
-      process.env.JWT_SECRET || "DLWQ12",
-      { expiresIn: "1h" }
-    );
-    return res.json({ token, username, role: demoUser.role, firstName: demoUser.firstName, lastName: demoUser.lastName });
-  }
-
   try {
     // Query user table with decrypted username
     const [userRows] = await pool.query(

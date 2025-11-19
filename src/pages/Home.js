@@ -46,28 +46,6 @@ function Homepage() {
 
     if (!validateForm()) return;
 
-    // Demo users
-    const demoUsers = {
-      admin: { password: "admin", role: "admin", firstName: "Admin", lastName: "User" },
-      staff: { password: "staff", role: "staff", firstName: "Staff", lastName: "User" },
-      doctor: { password: "doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
-      Admin: { password: "Admin", role: "admin", firstName: "Admin", lastName: "User" },
-      Staff: { password: "Staff", role: "staff", firstName: "Staff", lastName: "User" },
-      Doctor: { password: "Doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
-    };
-
-    const demoUser = demoUsers[username];
-    if (demoUser && demoUser.password === password) {
-      localStorage.setItem("loggedIn", "true");
-      localStorage.setItem("role", demoUser.role);
-      localStorage.setItem("username", username);
-      localStorage.setItem("firstName", demoUser.firstName);
-      localStorage.setItem("lastName", demoUser.lastName);
-
-      navigateByRole(demoUser);
-      return;
-    }
-
     // Backend login
     try {
       const res = await fetch("http://localhost:5001/api/auth/login", {
