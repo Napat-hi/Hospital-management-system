@@ -264,32 +264,19 @@ app.put('/api/patients/:id', async (req, res) => {
 // 9. POST - Create new appointment
 app.post('/api/appointments', async (req, res) => {
   try {
-    // Log the request body for debugging
-    console.log('Appointment request body:', req.body);
+    const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
     
-    const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body || {};
-    
-    // Validation - check for missing fields
-    if (!patient_id) {
-      return res.status(400).json({ error: 'Missing required field: patient_id' });
-    }
-    if (!doctor_id) {
-      return res.status(400).json({ error: 'Missing required field: doctor_id' });
-    }
-    if (!appointment_date) {
-      return res.status(400).json({ error: 'Missing required field: appointment_date' });
-    }
-    if (!appointment_time) {
-      return res.status(400).json({ error: 'Missing required field: appointment_time' });
+    // Validation
+    if (!patient_id || !doctor_id || !appointment_date || !appointment_time) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Combine date and time into DATETIME format
+    // Combine date and time into TIMESTAMP format
     const datetime = `${appointment_date} ${appointment_time}`;
     
-    // Insert appointment into database
     const [result] = await db.query(`
-      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at)
-      VALUES (?, ?, ?, ?, AES_ENCRYPT(?, get_enc_key()), 'SCHEDULED', NOW())
+      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status)
+      VALUES (?, ?, ?, ?, ?, 'SCHEDULED')
     `, [patient_id, doctor_id, appointment_date, datetime, reason || '']);
     
     res.status(201).json({
@@ -298,7 +285,7 @@ app.post('/api/appointments', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating appointment:', error);
-    res.status(500).json({ error: 'Failed to create appointment', details: error.message });
+    res.status(500).json({ error: 'Failed to create appointment' });
   }
 });
 
