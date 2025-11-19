@@ -29,8 +29,8 @@ app.use("/api/user", userRouter); // ✅ ADD THIS LINE
 // 1. GET - Get all users (doctors and staff combined)
 app.get('/api/users', async (req, res) => {
   try {
-    // Get all doctors
-    const [doctors] = await db.query(`
+    // Get all doctors (Admin has READ permission)
+    const [doctors] = await dbAdmin.query(`
       SELECT 
         doctor_id as id,
         first_name,
@@ -46,8 +46,8 @@ app.get('/api/users', async (req, res) => {
       FROM doctor
     `);
     
-    // Get all staff
-    const [staff] = await db.query(`
+    // Get all staff (Admin has READ permission)
+    const [staff] = await dbAdmin.query(`
       SELECT 
         staff_id as id,
         first_name,
@@ -100,8 +100,8 @@ app.post('/api/users', async (req, res) => {
       return res.status(400).json({ error: 'Role must be either Doctor or Staff' });
     }
     
-    // Start transaction
-    const connection = await db.getConnection();
+    // Start transaction - need admin connection for staff/user operations
+    const connection = await dbAdmin.getConnection();
     await connection.beginTransaction();
     
     try {
@@ -199,7 +199,7 @@ app.put('/api/users/:id', async (req, res) => {
       
       values.push(id);
       
-      await db.query(`
+      await dbAdmin.query(`
         UPDATE doctor 
         SET ${updates.join(', ')}
         WHERE doctor_id = ?
@@ -224,7 +224,7 @@ app.put('/api/users/:id', async (req, res) => {
       
       values.push(id);
       
-      await db.query(`
+      await dbAdmin.query(`
         UPDATE staff 
         SET ${updates.join(', ')}
         WHERE staff_id = ?
@@ -338,7 +338,7 @@ app.get("/api/patients/search", async (req, res) => {
   try {
     const term = req.query.q || "";
 
-    const [rows] = await db.query(`
+    const [rows] = await dbStaff.query(`
       SELECT 
         patient_id AS id,
         CAST(AES_DECRYPT(first_name, get_enc_key()) AS CHAR) AS first_name,
@@ -878,7 +878,7 @@ app.delete('/api/bills/:id', async (req, res) => {
 // GET all staff
 app.get('/api/staff', async (req, res) => {
   try {
-    const [rows] = await db.query(`
+    const [rows] = await dbStaff.query(`
       SELECT 
         staff_id as id,
         first_name,
@@ -899,7 +899,7 @@ app.get('/api/staff', async (req, res) => {
 app.get('/api/staff/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [rows] = await db.query("SELECT * FROM staff WHERE staff_id = ?", [id]);
+    const [rows] = await dbStaff.query("SELECT * FROM staff WHERE staff_id = ?", [id]);
 
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Staff not found' });
@@ -916,7 +916,7 @@ app.get('/api/staff/:id', async (req, res) => {
 app.post('/api/staff', async (req, res) => {
   try {
     const { first_name, last_name, position, department, email } = req.body;
-    const [result] = await db.query(
+    const [result] = await dbStaff.query(
       "INSERT INTO staff (first_name, last_name, position, department, email) VALUES (?, ?, ?, ?, ?)",
       [first_name, last_name, position, department, email]
     );
@@ -932,7 +932,7 @@ app.put('/api/staff/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { first_name, last_name, position, department, email } = req.body;
-    await db.query(
+    await dbStaff.query(
       "UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=? WHERE staff_id=?",
       [first_name, last_name, position, department, email, id]
     );
@@ -947,95 +947,7 @@ app.put('/api/staff/:id', async (req, res) => {
 app.patch('/api/staff/:id/disable', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [result] = await db.query(
-      "UPDATE staff SET status='INACTIVE' WHERE staff_id=?",
-      [id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Staff not found' });
-    }
-
-    res.json({ message: 'Staff disabled successfully', id });
-  } catch (error) {
-    console.error('Error disabling staff:', error);
-    res.status(500).json({ error: 'Failed to disable staff' });
-  }
-});
-
-// GET all staff
-app.get('/api/staff', async (req, res) => {
-  try {
-    const [rows] = await db.query(`
-      SELECT 
-        staff_id as id,
-        first_name,
-        last_name,
-        position,
-        department,
-        email
-      FROM staff
-    `);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching staff:', error);
-    res.status(500).json({ error: 'Failed to fetch staff' });
-  }
-});
-
-// GET staff by ID
-app.get('/api/staff/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [rows] = await db.query("SELECT * FROM staff WHERE staff_id = ?", [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: 'Staff not found' });
-    }
-
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Error fetching staff:', error);
-    res.status(500).json({ error: 'Failed to fetch staff' });
-  }
-});
-
-// POST - Create new staff
-app.post('/api/staff', async (req, res) => {
-  try {
-    const { first_name, last_name, position, department, email } = req.body;
-    const [result] = await db.query(
-      "INSERT INTO staff (first_name, last_name, position, department, email) VALUES (?, ?, ?, ?, ?)",
-      [first_name, last_name, position, department, email]
-    );
-    res.status(201).json({ id: result.insertId, message: 'Staff created successfully' });
-  } catch (error) {
-    console.error('Error creating staff:', error);
-    res.status(500).json({ error: 'Failed to create staff' });
-  }
-});
-
-// PUT - Update staff
-app.put('/api/staff/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { first_name, last_name, position, department, email } = req.body;
-    await db.query(
-      "UPDATE staff SET first_name=?, last_name=?, position=?, department=?, email=? WHERE staff_id=?",
-      [first_name, last_name, position, department, email, id]
-    );
-    res.json({ message: 'Staff updated successfully', id });
-  } catch (error) {
-    console.error('Error updating staff:', error);
-    res.status(500).json({ error: 'Failed to update staff' });
-  }
-});
-
-// PATCH - Disable staff
-app.patch('/api/staff/:id/disable', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [result] = await db.query(
+    const [result] = await dbStaff.query(
       "UPDATE staff SET status='INACTIVE' WHERE staff_id=?",
       [id]
     );
