@@ -27,21 +27,21 @@ INSERT INTO patient (first_name, last_name, dob, sex, email, phone, address, eme
 -- DOCTOR
 -- =========================================================
 INSERT INTO doctor (first_name, last_name, department, specialization, phone, email, hire_date) VALUES
-('Pawat', 'Kittipong', 'Cardiology', 'Cardiologist', '0811113333', 'pawat.k@hms.com', '2015-05-01'),
-('Siriwan', 'Boonsong', 'Neurology', 'Neurologist', '0822224444', 'siriwan.b@hms.com', '2016-08-15'),
-('Thanakorn', 'Meechai', 'Pediatrics', 'Pediatrician', '0833335555', 'thanakorn.m@hms.com', '2019-01-20'),
-('Jirapat', 'Suntorn', 'Orthopedics', 'Orthopedic Surgeon', '0844446666', 'jirapat.s@hms.com', '2018-07-07'),
-('Kanchana', 'Sriwan', 'General Medicine', 'Physician', '0855557777', 'kanchana.s@hms.com', '2020-09-10');
+('Pawat', 'Kittipong', 'General Medicine', 'Cardiology', '0811113333', 'pawat.k@hms.com', '2015-05-01'),
+('Siriwan', 'Boonsong', 'General Medicine', 'Neurology', '0822224444', 'siriwan.b@hms.com', '2016-08-15'),
+('Thanakorn', 'Meechai', 'Pediatrics', 'Pediatrics', '0833335555', 'thanakorn.m@hms.com', '2019-01-20'),
+('Jirapat', 'Suntorn', 'General Surgery', 'Orthopedics', '0844446666', 'jirapat.s@hms.com', '2018-07-07'),
+('Kanchana', 'Sriwan', 'Obstetrics & Gynecology', 'Obstetrics & Gynecology', '0855557777', 'kanchana.s@hms.com', '2020-09-10');
 
 -- =========================================================
 -- STAFF
 -- =========================================================
 INSERT INTO staff (first_name, last_name, position, department, email, phone, hire_date) VALUES
-('Nattapong', 'Wilaikul', 'Cashier', 'Billing', 'nattapong@hms.com', '0812223344', '2021-01-15'),
-('Chutima', 'Korn', 'Receptionist', 'Front Desk', 'chutima@hms.com', '0813334455', '2022-02-20'),
+('Nattapong', 'Wilaikul', 'Hospital Administrator', 'General Medicine', 'nattapong@hms.com', '0812223344', '2021-01-15'),
+('Chutima', 'Korn', 'Medical Assistant', 'Emergency Medicine', 'chutima@hms.com', '0813334455', '2022-02-20'),
 ('Wirat', 'Thammasak', 'Nurse', 'Pediatrics', 'wirat@hms.com', '0824445566', '2019-06-12'),
-('Somsri', 'Kaew', 'Technician', 'Radiology', 'somsri@hms.com', '0835556677', '2018-09-01'),
-('Phudit', 'Saelee', 'Accountant', 'Finance', 'phudit@hms.com', '0846667788', '2017-04-18');
+('Somsri', 'Kaew', 'Laboratory Technician', 'General Surgery', 'somsri@hms.com', '0835556677', '2018-09-01'),
+('Phudit', 'Saelee', 'Pharmacist', 'General Medicine', 'phudit@hms.com', '0846667788', '2017-04-18');
 -- =========================================================
 -- BILL (note: totals are quoted as strings for AES_ENCRYPT)
 -- =========================================================
@@ -75,28 +75,33 @@ INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_ti
 -- =========================================================
 -- USER
 -- =========================================================
+-- Format: username = firstname (lowercase), password = firstname.first3letters_of_lastname (lowercase)
 INSERT INTO user (username, password) VALUES
-('ananda.cha', '12031985'),
-('kanya.tho', '08071990'),
-('somchai.rat', '24011978'),
-('mayuree.nim', '17091995'),
-('arthit.sir', '05112000'),
-('benjamas.cha', '28041988'),
-('preecha.suk', '10121975'),
-('thanya.won', '15021998'),
-('surasak.boo', '06061982'),
-('manita.yod', '25102001'),
+-- Patients (IDs 1-10)
+('ananda', 'ananda.cha'),
+('kanya', 'kanya.tho'),
+('somchai', 'somchai.rat'),
+('mayuree', 'mayuree.nim'),
+('arthit', 'arthit.sir'),
+('benjamas', 'benjamas.cha'),
+('preecha', 'preecha.suk'),
+('thanya', 'thanya.won'),
+('surasak', 'surasak.boo'),
+('manita', 'manita.yod'),
 
-('pawat.kit', '01051980'),
-('siriwan.boo', '15081979'),
-('thanakorn.mee', '20011985'),
-('jirapat.sun', '07071981'),
-('kanchana.sri', '10092083'),
+-- Doctors (IDs 11-15)
+('pawat', 'pawat.kit'),
+('siriwan', 'siriwan.boo'),
+('thanakorn', 'thanakorn.mee'),
+('jirapat', 'jirapat.sun'),
+('kanchana', 'kanchana.sri'),
 
-('nattapong.wil', '15011990'),
-('chutima.kor', '20021993'),
-('wirat.tha', '12061987'),
-('somsri.kae', '01091985'),
-('phudit.sae', '18041988'),
+-- Staff (IDs 16-20)
+('nattapong', 'nattapong.wil'),
+('chutima', 'chutima.kor'),
+('wirat', 'wirat.tha'),
+('somsri', 'somsri.kae'),
+('phudit', 'phudit.sae'),
 
-('admin.admin', 'admin');
+-- Admin
+('admin', 'admin.adm');
