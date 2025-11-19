@@ -24,24 +24,46 @@ INSERT INTO patient (first_name, last_name, dob, sex, email, phone, address, eme
 ('Manita', 'Yodrak', '2001-10-25', 'F', 'manita01@gmail.com', '0844445555', 'Bangkok, Thailand', '0811112222');
 
 -- =========================================================
--- DOCTOR
+-- USER (Must be inserted first due to foreign key constraints)
 -- =========================================================
-INSERT INTO doctor (first_name, last_name, department, specialization, phone, email, hire_date) VALUES
-('Pawat', 'Kittipong', 'General Medicine', 'Cardiology', '0811113333', 'pawat.k@hms.com', '2015-05-01'),
-('Siriwan', 'Boonsong', 'General Medicine', 'Neurology', '0822224444', 'siriwan.b@hms.com', '2016-08-15'),
-('Thanakorn', 'Meechai', 'Pediatrics', 'Pediatrics', '0833335555', 'thanakorn.m@hms.com', '2019-01-20'),
-('Jirapat', 'Suntorn', 'General Surgery', 'Orthopedics', '0844446666', 'jirapat.s@hms.com', '2018-07-07'),
-('Kanchana', 'Sriwan', 'Obstetrics & Gynecology', 'Obstetrics & Gynecology', '0855557777', 'kanchana.s@hms.com', '2020-09-10');
+-- Format: username = firstname (lowercase), password = firstname.first3letters_of_lastname (lowercase)
+INSERT INTO user (username, password) VALUES
+-- Doctors (IDs 1-5)
+('pawat', 'pawat.kit'),
+('siriwan', 'siriwan.boo'),
+('thanakorn', 'thanakorn.mee'),
+('jirapat', 'jirapat.sun'),
+('kanchana', 'kanchana.sri'),
+
+-- Staff (IDs 6-10)
+('nattapong', 'nattapong.wil'),
+('chutima', 'chutima.kor'),
+('wirat', 'wirat.tha'),
+('somsri', 'somsri.kae'),
+('phudit', 'phudit.sae'),
+
+-- Admin (ID 11)
+('admin', 'admin.adm');
 
 -- =========================================================
--- STAFF
+-- DOCTOR (with user_id foreign keys)
 -- =========================================================
-INSERT INTO staff (first_name, last_name, position, department, email, phone, hire_date) VALUES
-('Nattapong', 'Wilaikul', 'Hospital Administrator', 'General Medicine', 'nattapong@hms.com', '0812223344', '2021-01-15'),
-('Chutima', 'Korn', 'Medical Assistant', 'Emergency Medicine', 'chutima@hms.com', '0813334455', '2022-02-20'),
-('Wirat', 'Thammasak', 'Nurse', 'Pediatrics', 'wirat@hms.com', '0824445566', '2019-06-12'),
-('Somsri', 'Kaew', 'Laboratory Technician', 'General Surgery', 'somsri@hms.com', '0835556677', '2018-09-01'),
-('Phudit', 'Saelee', 'Pharmacist', 'General Medicine', 'phudit@hms.com', '0846667788', '2017-04-18');
+INSERT INTO doctor (first_name, last_name, department, specialization, phone, email, user_id, hire_date) VALUES
+('Pawat', 'Kittipong', 'General Medicine', 'Cardiology', '0811113333', 'pawat.k@hms.com', 1, '2015-05-01'),
+('Siriwan', 'Boonsong', 'General Medicine', 'Neurology', '0822224444', 'siriwan.b@hms.com', 2, '2016-08-15'),
+('Thanakorn', 'Meechai', 'Pediatrics', 'Pediatrics', '0833335555', 'thanakorn.m@hms.com', 3, '2019-01-20'),
+('Jirapat', 'Suntorn', 'General Surgery', 'Orthopedics', '0844446666', 'jirapat.s@hms.com', 4, '2018-07-07'),
+('Kanchana', 'Sriwan', 'Obstetrics & Gynecology', 'Obstetrics & Gynecology', '0855557777', 'kanchana.s@hms.com', 5, '2020-09-10');
+
+-- =========================================================
+-- STAFF (with user_id foreign keys)
+-- =========================================================
+INSERT INTO staff (first_name, last_name, position, department, email, phone, user_id, hire_date) VALUES
+('Nattapong', 'Wilaikul', 'Hospital Administrator', 'General Medicine', 'nattapong@hms.com', '0812223344', 6, '2021-01-15'),
+('Chutima', 'Korn', 'Medical Assistant', 'Emergency Medicine', 'chutima@hms.com', '0813334455', 7, '2022-02-20'),
+('Wirat', 'Thammasak', 'Nurse', 'Pediatrics', 'wirat@hms.com', '0824445566', 8, '2019-06-12'),
+('Somsri', 'Kaew', 'Laboratory Technician', 'General Surgery', 'somsri@hms.com', '0835556677', 9, '2018-09-01'),
+('Phudit', 'Saelee', 'Pharmacist', 'General Medicine', 'phudit@hms.com', '0846667788', 10, '2017-04-18');
 -- =========================================================
 -- BILL (note: totals are quoted as strings for AES_ENCRYPT)
 -- =========================================================
@@ -72,24 +94,4 @@ INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_ti
 (4, 4, '2025-11-05', '2025-11-05 15:00:00', 'Knee pain follow-up', 'COMPLETED'),
 (5, 5, '2025-11-09', '2025-11-09 08:30:00', 'General health screening', 'SCHEDULED');
 
--- =========================================================
--- USER
--- =========================================================
--- Format: username = firstname (lowercase), password = firstname.first3letters_of_lastname (lowercase)
-INSERT INTO user (username, password) VALUES
--- Doctors (IDs 1-5)
-('pawat', 'pawat.kit'),
-('siriwan', 'siriwan.boo'),
-('thanakorn', 'thanakorn.mee'),
-('jirapat', 'jirapat.sun'),
-('kanchana', 'kanchana.sri'),
 
--- Staff (IDs 6-10)
-('nattapong', 'nattapong.wil'),
-('chutima', 'chutima.kor'),
-('wirat', 'wirat.tha'),
-('somsri', 'somsri.kae'),
-('phudit', 'phudit.sae'),
-
--- Admin
-('admin', 'admin.adm');

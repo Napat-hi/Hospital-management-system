@@ -1,5 +1,5 @@
 // Database connection configuration
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 require('dotenv').config();
 
 // Create connection pool (better than single connection)

@@ -50,7 +50,7 @@ router.post("/login", async (req, res) => {
     const [userRows] = await pool.query(
       `SELECT user_id, 
               CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) AS username, 
-              password, role
+              password
        FROM user
        WHERE CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) = ?`,
       [username]
@@ -62,8 +62,48 @@ router.post("/login", async (req, res) => {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
-      const token = jwt.sign({ user_id: user.user_id, role: user.role }, process.env.JWT_SECRET || "DLWQ12", { expiresIn: "1h" });
-      return res.json({ token, username: user.username, role: user.role });
+      // Determine role by checking doctor and staff tables
+      let role = null;
+      let firstName = null;
+      let lastName = null;
+
+      // Check if user is a doctor
+      const [doctorRows] = await pool.query(
+        `SELECT first_name, last_name FROM doctor WHERE user_id = ?`,
+        [user.user_id]
+      );
+
+      if (doctorRows.length > 0) {
+        role = 'doctor';
+        firstName = doctorRows[0].first_name;
+        lastName = doctorRows[0].last_name;
+      } else {
+        // Check if user is staff
+        const [staffRows] = await pool.query(
+          `SELECT first_name, last_name FROM staff WHERE user_id = ?`,
+          [user.user_id]
+        );
+
+        if (staffRows.length > 0) {
+          role = 'staff';
+          firstName = staffRows[0].first_name;
+          lastName = staffRows[0].last_name;
+        }
+      }
+
+      // Check if username is 'admin' for admin role
+      if (user.username === 'admin') {
+        role = 'admin';
+        firstName = 'Admin';
+        lastName = 'User';
+      }
+
+      if (!role) {
+        return res.status(401).json({ error: "User role not found" });
+      }
+
+      const token = jwt.sign({ user_id: user.user_id, role: role }, process.env.JWT_SECRET || "DLWQ12", { expiresIn: "1h" });
+      return res.json({ token, username: user.username, role: role, firstName: firstName, lastName: lastName });
     }
 
     res.status(401).json({ error: "Invalid username or password" });
