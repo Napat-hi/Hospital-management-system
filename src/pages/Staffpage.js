@@ -324,7 +324,15 @@ export default function Staffpage() {
   };
 
   const handleLogout = () => {
-    navigate("/"); // กลับหน้า login/หน้าแรก
+    // Clear authentication data from localStorage
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('firstName');
+    localStorage.removeItem('lastName');
+    
+    // Navigate back to login page
+    navigate("/");
   };
 
   // ---- Validation helper functions ----

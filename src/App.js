@@ -1,38 +1,80 @@
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import About from './pages/Adminpage';
-import Doctor from './pages/Doctorpage';
-import Staff from './pages/Staffpage';
+import Adminpage from './pages/Adminpage';
+import Doctorpage from './pages/Doctorpage';
+import Staffpage from './pages/Staffpage';
 import Contact from './pages/Contact';
-// import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-
-
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
-  // const [response,setResponse]=useState({});
-  const [setResponse]=useState({});
-
-  return(
-
+  return (
     <div>
       <BrowserRouter>
         <Routes>
+          {/* Public Routes - Login Page */}
           <Route index element={<Home />} />
-          <Route path="/Adminpage" element={<About />} />
-          <Route path="/Doctorpage" element={<Doctor />} />
-          <Route path="/Staffpage" element={<Staff />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/home" element={<Home setResponse={setResponse}/>} />
 
+          {/* Protected Routes with Role-Based Access */}
+          
+          {/* Admin Page - Only admin role can access */}
+          <Route 
+            path="/adminpage" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Adminpage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Staff Page - Both staff and admin roles can access */}
+          <Route 
+            path="/staffpage" 
+            element={
+              <ProtectedRoute allowedRoles={['staff', 'admin']}>
+                <Staffpage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Doctor Page - Both doctor and admin roles can access */}
+          <Route 
+            path="/doctorpage" 
+            element={
+              <ProtectedRoute allowedRoles={['doctor', 'admin']}>
+                <Doctorpage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Legacy routes for backward compatibility */}
+          <Route 
+            path="/Adminpage" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Adminpage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/Staffpage" 
+            element={
+              <ProtectedRoute allowedRoles={['staff', 'admin']}>
+                <Staffpage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/Doctorpage" 
+            element={
+              <ProtectedRoute allowedRoles={['doctor', 'admin']}>
+                <Doctorpage />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
-      </BrowserRouter >
-
-
-      
-
-
-    </div >
-  )
+      </BrowserRouter>
+    </div>
+  );
 }

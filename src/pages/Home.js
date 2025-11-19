@@ -66,19 +66,40 @@ function App() {
       return;
     }
 
-    if (username === "Admin" && password === "Admin") {
-      handleNavigate("/Adminpage", "Admin", "User", "");
-      return;
-    }
-    if (username === "Doctor" && password === "Doctor") {
-      handleNavigate("/Doctorpage", "Doctor", "User", "");
-      return;
-    }
-    if (username === "Staff" && password === "Staff") {
-      handleNavigate("/Staffpage", "Staff", "User", "");
+    // Demo credentials with role-based authentication
+    const demoUsers = {
+      "admin": { password: "admin", role: "admin", firstName: "Admin", lastName: "User" },
+      "staff": { password: "staff", role: "staff", firstName: "Staff", lastName: "User" },
+      "doctor": { password: "doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
+      // Alternative credentials (backward compatible)
+      "Admin": { password: "Admin", role: "admin", firstName: "Admin", lastName: "User" },
+      "Staff": { password: "Staff", role: "staff", firstName: "Staff", lastName: "User" },
+      "Doctor": { password: "Doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
+    };
+
+    // Check if username exists in demo users
+    const user = demoUsers[username];
+
+    if (user && user.password === password) {
+      // Store authentication info in localStorage
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('role', user.role);
+      localStorage.setItem('username', username);
+      localStorage.setItem('firstName', user.firstName);
+      localStorage.setItem('lastName', user.lastName);
+
+      // Navigate based on role
+      if (user.role === 'admin') {
+        handleNavigate("/adminpage", user.firstName, user.lastName, "");
+      } else if (user.role === 'staff') {
+        handleNavigate("/staffpage", user.firstName, user.lastName, "");
+      } else if (user.role === 'doctor') {
+        handleNavigate("/doctorpage", user.firstName, user.lastName, "");
+      }
       return;
     }
 
+    // If demo credentials don't match, try API (for backward compatibility)
     try {
       const res = await fetch("https://reqres.in/api/users");
       const json = await res.json();
@@ -90,12 +111,19 @@ function App() {
       );
 
       if (!match) {
-        setMessage("User or Password is incorrect");
+        setMessage("Username or Password is incorrect");
         return;
       }
 
+      // For API users, set default role as staff
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('role', 'staff');
+      localStorage.setItem('username', match.first_name);
+      localStorage.setItem('firstName', match.first_name);
+      localStorage.setItem('lastName', match.last_name);
+
       handleNavigate(
-        "/Aboutpage",
+        "/staffpage",
         match.first_name,
         match.last_name,
         match.avatar
@@ -182,7 +210,9 @@ function App() {
               </button>
             </form>
 
-            <p className="text-muted mt-4 mb-0">
+          
+
+            <p className="text-muted mt-3 mb-0">
               Code by <a href="#" className="text-decoration-none">Hospital</a>
             </p>
           </div>
