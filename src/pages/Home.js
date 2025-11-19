@@ -4,7 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
 import img1 from "../image/1.jpg";
 
-function App() {
+function Homepage() {
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -13,29 +13,10 @@ function App() {
   const [photo, setPhoto] = useState("");
   const [errors, setErrors] = useState({ username: "", password: "" });
 
-  const [firstnames, setFirstNames] = useState("");
-  const [lastnames, setLastNames] = useState("");
-  const [listData, setListData] = useState([]);
-
-  const handleNavigate = (path, fn, ln, avatar = "") => {
-    setFirstNames(fn);
-    setLastNames(ln);
-    setPhoto(avatar);
-    navigate(path, {
-      state: {
-        firstnames: fn,
-        lastnames: ln,
-        listdata: listData,
-        photo: avatar,
-      },
-    });
-  };
-
   const validateForm = () => {
     const newErrors = { username: "", password: "" };
     let isValid = true;
 
-    // Username validation
     if (!username.trim()) {
       newErrors.username = "Username is required";
       isValid = false;
@@ -44,7 +25,6 @@ function App() {
       isValid = false;
     }
 
-    // Password validation
     if (!password) {
       newErrors.password = "Password is required";
       isValid = false;
@@ -62,55 +42,55 @@ function App() {
     setMessage("");
     setErrors({ username: "", password: "" });
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
+    // ✅ Keep hardcoded Admin and Doctor
     if (username === "Admin" && password === "Admin") {
-      handleNavigate("/Adminpage", "Admin", "User", "");
+      navigate("/Adminpage");
       return;
     }
     if (username === "Doctor" && password === "Doctor") {
-      handleNavigate("/Doctorpage", "Doctor", "User", "");
-      return;
-    }
-    if (username === "Staff" && password === "Staff") {
-      handleNavigate("/Staffpage", "Staff", "User", "");
+      navigate("/Doctorpage");
       return;
     }
 
-    try {
-      const res = await fetch("https://reqres.in/api/users");
-      const json = await res.json();
-      const users = json?.data ?? [];
-      setListData(users);
+    // ✅ Staff goes through backend
+    if (username === "Staff1") {
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
 
-      const match = users.find(
-        (u) => u.first_name === username && u.last_name === password
-      );
+        const data = await res.json();
 
-      if (!match) {
-        setMessage("User or Password is incorrect");
-        return;
+        if (!res.ok) {
+          setMessage(data.error || "Login failed");
+          return;
+        }
+
+        // Save token + role
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("username", data.username);
+
+        navigate("/Staffpage");
+      } catch (err) {
+        console.error(err);
+        setMessage("Network error. Please try again.");
       }
-
-      handleNavigate(
-        "/Aboutpage",
-        match.first_name,
-        match.last_name,
-        match.avatar
-      );
-    } catch (err) {
-      console.error(err);
-      setMessage("Network error. Please try again.");
+      return;
     }
+
+    // If none matched
+    setMessage("User or Password is incorrect");
   };
 
   return (
-    // Use minHeight: '100dvh' to avoid ResizeObserver loops on mobile
     <div className="container-fluid p-0" style={{ minHeight: "100dvh" }}>
       <div className="row g-0 h-100" style={{ minHeight: "100%" }}>
-        {/* Left side (full-height image) */}
+        {/* Left side (image) */}
         <div className="col-md-6 d-none d-md-block p-0" style={{ minHeight: "100%" }}>
           <img
             src={photo || img1}
@@ -120,7 +100,7 @@ function App() {
           />
         </div>
 
-        {/* Right side (login) */}
+        {/* Right side (login form) */}
         <div className="col-md-6 d-flex align-items-center justify-content-center login-bg">
           <div
             className="login-box text-center text-dark p-5 rounded shadow-lg"
@@ -138,15 +118,15 @@ function App() {
                 <input
                   type="text"
                   id="username"
-                  className={`form-control rounded-pill shadow-sm ${errors.username ? 'is-invalid' : ''}`}
+                  className={`form-control rounded-pill shadow-sm ${errors.username ? "is-invalid" : ""}`}
                   placeholder="Username"
                   value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
-                    setErrors(prev => ({ ...prev, username: "" }));
+                    setErrors((prev) => ({ ...prev, username: "" }));
                   }}
                 />
-                <label htmlFor="username">Username (or first_name)</label>
+                <label htmlFor="username">Username</label>
                 {errors.username && (
                   <div className="invalid-feedback">{errors.username}</div>
                 )}
@@ -156,15 +136,15 @@ function App() {
                 <input
                   type="password"
                   id="password"
-                  className={`form-control rounded-pill shadow-sm ${errors.password ? 'is-invalid' : ''}`}
+                  className={`form-control rounded-pill shadow-sm ${errors.password ? "is-invalid" : ""}`}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    setErrors(prev => ({ ...prev, password: "" }));
+                    setErrors((prev) => ({ ...prev, password: "" }));
                   }}
                 />
-                <label htmlFor="password">Password (or last_name)</label>
+                <label htmlFor="password">Password</label>
                 {errors.password && (
                   <div className="invalid-feedback">{errors.password}</div>
                 )}
@@ -192,4 +172,4 @@ function App() {
   );
 }
 
-export default App;
+export default Homepage;
