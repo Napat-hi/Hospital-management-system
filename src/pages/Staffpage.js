@@ -352,7 +352,15 @@ try {
   };
 
   const handleLogout = () => {
-    navigate("/"); // กลับหน้า login/หน้าแรก
+    // Clear authentication data from localStorage
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('firstName');
+    localStorage.removeItem('lastName');
+    
+    // Navigate back to login page
+    navigate("/");
   };
 
   const toggleStaffStatus = async (id, currentStatus) => {

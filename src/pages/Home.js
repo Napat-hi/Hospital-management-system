@@ -44,47 +44,72 @@ function Homepage() {
 
     if (!validateForm()) return;
 
-    // ✅ Keep hardcoded Admin and Doctor
-    if (username === "Admin" && password === "Admin") {
-      navigate("/Adminpage");
-      return;
-    }
-    if (username === "Doctor" && password === "Doctor") {
-      navigate("/Doctorpage");
-      return;
-    }
+    // Demo credentials with role-based authentication
+    const demoUsers = {
+      "admin": { password: "admin", role: "admin", firstName: "Admin", lastName: "User" },
+      "staff": { password: "staff", role: "staff", firstName: "Staff", lastName: "User" },
+      "doctor": { password: "doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
+      // Alternative credentials (backward compatible)
+      "Admin": { password: "Admin", role: "admin", firstName: "Admin", lastName: "User" },
+      "Staff": { password: "Staff", role: "staff", firstName: "Staff", lastName: "User" },
+      "Doctor": { password: "Doctor", role: "doctor", firstName: "Doctor", lastName: "User" },
+    };
 
-    // ✅ Staff goes through backend
-    if (username === "Staff1") {
-      try {
-        const res = await fetch("http://localhost:5000/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
+    // Check if username exists in demo users
+    const user = demoUsers[username];
 
-        const data = await res.json();
+    if (user && user.password === password) {
+      // Store authentication info in localStorage
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('role', user.role);
+      localStorage.setItem('username', username);
+      localStorage.setItem('firstName', user.firstName);
+      localStorage.setItem('lastName', user.lastName);
 
-        if (!res.ok) {
-          setMessage(data.error || "Login failed");
-          return;
-        }
-
-        // Save token + role
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("username", data.username);
-
-        navigate("/Staffpage");
-      } catch (err) {
-        console.error(err);
-        setMessage("Network error. Please try again.");
+      // Navigate based on role
+      if (user.role === 'admin') {
+        handleNavigate("/adminpage", user.firstName, user.lastName, "");
+      } else if (user.role === 'staff') {
+        handleNavigate("/staffpage", user.firstName, user.lastName, "");
+      } else if (user.role === 'doctor') {
+        handleNavigate("/doctorpage", user.firstName, user.lastName, "");
       }
       return;
     }
 
-    // If none matched
-    setMessage("User or Password is incorrect");
+    // If demo credentials don't match, try API (for backward compatibility)
+    try {
+      const res = await fetch("https://reqres.in/api/users");
+      const json = await res.json();
+      const users = json?.data ?? [];
+      setListData(users);
+
+      const match = users.find(
+        (u) => u.first_name === username && u.last_name === password
+      );
+
+      if (!match) {
+        setMessage("Username or Password is incorrect");
+        return;
+      }
+
+      // For API users, set default role as staff
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('role', 'staff');
+      localStorage.setItem('username', match.first_name);
+      localStorage.setItem('firstName', match.first_name);
+      localStorage.setItem('lastName', match.last_name);
+
+      handleNavigate(
+        "/staffpage",
+        match.first_name,
+        match.last_name,
+        match.avatar
+      );
+    } catch (err) {
+      console.error(err);
+      setMessage("Network error. Please try again.");
+    }
   };
 
   return (
@@ -162,7 +187,9 @@ function Homepage() {
               </button>
             </form>
 
-            <p className="text-muted mt-4 mb-0">
+          
+
+            <p className="text-muted mt-3 mb-0">
               Code by <a href="#" className="text-decoration-none">Hospital</a>
             </p>
           </div>
