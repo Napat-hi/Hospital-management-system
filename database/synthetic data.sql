@@ -77,26 +77,14 @@ INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_ti
 -- =========================================================
 -- Format: username = firstname (lowercase), password = firstname.first3letters_of_lastname (lowercase)
 INSERT INTO user (username, password) VALUES
--- Patients (IDs 1-10)
-('ananda', 'ananda.cha'),
-('kanya', 'kanya.tho'),
-('somchai', 'somchai.rat'),
-('mayuree', 'mayuree.nim'),
-('arthit', 'arthit.sir'),
-('benjamas', 'benjamas.cha'),
-('preecha', 'preecha.suk'),
-('thanya', 'thanya.won'),
-('surasak', 'surasak.boo'),
-('manita', 'manita.yod'),
-
--- Doctors (IDs 11-15)
+-- Doctors (IDs 1-5)
 ('pawat', 'pawat.kit'),
 ('siriwan', 'siriwan.boo'),
 ('thanakorn', 'thanakorn.mee'),
 ('jirapat', 'jirapat.sun'),
 ('kanchana', 'kanchana.sri'),
 
--- Staff (IDs 16-20)
+-- Staff (IDs 6-10)
 ('nattapong', 'nattapong.wil'),
 ('chutima', 'chutima.kor'),
 ('wirat', 'wirat.tha'),
