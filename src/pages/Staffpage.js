@@ -721,8 +721,8 @@ export default function Staffpage() {
     // Convert time to 24-hour format for the time input field
     setEditAppointmentFormData({
       id: appointment.id,
-      patientId: appointment.patientId,
-      doctorId: appointment.doctorId,
+      patientId: appointment.patient_id || appointment.patientId,
+      doctorId: appointment.doctor_id || appointment.doctorId,
       appointmentDate: appointment.appointmentDate,
       appointmentTime: convertTo24Hour(appointment.appointmentTime),
       reason: appointment.reason
@@ -1105,8 +1105,9 @@ export default function Staffpage() {
 
           <div className="d-flex align-items-center gap-3">
             <div className="text-end">
-              <div className="small text-muted">Signed in</div>
-              <div className="fw-semibold">{f_name} {l_name}</div>
+              <div className="fw-semibold">
+                {localStorage.getItem('role') || 'Staff'}: {localStorage.getItem('username') || 'User'}
+              </div>
             </div>
 
             {photo ? (

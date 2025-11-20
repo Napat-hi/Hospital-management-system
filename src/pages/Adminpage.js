@@ -490,8 +490,9 @@ useEffect(() => {
 
           <div className="d-flex align-items-center gap-3">
             <div className="text-end">
-              <div className="small text-muted">Signed in</div>
-              <div className="fw-semibold">{f_name} {l_name}</div>
+              <div className="fw-semibold">
+                {localStorage.getItem('role') || 'Admin'}: {localStorage.getItem('username') || 'User'}
+              </div>
             </div>
 
             {photo ? (
