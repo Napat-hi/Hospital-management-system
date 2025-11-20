@@ -1142,9 +1142,6 @@ export default function Staffpage() {
               <h2 className="h5 m-0 text-muted">
                 {menu.find(m => m.key === view)?.label || "Dashboard"}
               </h2>
-              <div className="text-muted small">
-                Total users: {listData.length}
-              </div>
             </div>
 
             {/* PATIENT INFORMATION VIEW */}
