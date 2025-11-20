@@ -581,18 +581,13 @@ app.put('/api/appointments/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
     
-    const datetime = `${appointment_date} ${appointment_time}`;
+    // Format time to HH:MM:SS for MySQL TIME type
+    const formattedTime = appointment_time.length === 5 ? `${appointment_time}:00` : appointment_time;
     
-    // Note: Must manually encrypt for UPDATE (no trigger for updates)
+    // Use stored procedure for validation and conflict checking
     await dbStaff.query(`
-      UPDATE appointment 
-      SET patient_id = ?,
-          doctor_id = ?,
-          appointment_date = ?,
-          appointment_time = ?,
-          reason = AES_ENCRYPT(?, get_enc_key())
-      WHERE appointment_id = ?
-    `, [patient_id, doctor_id, appointment_date, datetime, reason || '', id]);
+      CALL sp_update_appointment(?, ?, ?, ?, ?, ?)
+    `, [id, patient_id, doctor_id, appointment_date, formattedTime, reason || '']);
     
     res.json({
       message: 'Appointment updated successfully',
@@ -600,6 +595,23 @@ app.put('/api/appointments/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating appointment:', error);
+    
+    // Handle specific procedure errors
+    if (error.sqlMessage) {
+      if (error.sqlMessage.includes('Appointment not found')) {
+        return res.status(404).json({ error: 'Appointment not found' });
+      }
+      if (error.sqlMessage.includes('Invalid patient_id')) {
+        return res.status(400).json({ error: 'Invalid patient ID' });
+      }
+      if (error.sqlMessage.includes('Invalid doctor_id')) {
+        return res.status(400).json({ error: 'Invalid doctor ID' });
+      }
+      if (error.sqlMessage.includes('Doctor already booked')) {
+        return res.status(409).json({ error: 'Doctor already has an appointment at this time' });
+      }
+    }
+    
     res.status(500).json({ error: 'Failed to update appointment' });
   }
 });

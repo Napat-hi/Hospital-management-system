@@ -829,7 +829,13 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error creating appointment:', error);
-      alert('Error connecting to server. Please make sure backend is running!');
+      
+      // Display specific error messages from backend
+      if (error.message) {
+        alert(error.message);
+      } else {
+        alert('Error connecting to server. Please make sure backend is running!');
+      }
     }
   };
 
@@ -861,7 +867,13 @@ export default function Staffpage() {
       
     } catch (error) {
       console.error('Error updating appointment:', error);
-      alert('Error connecting to server. Please make sure backend is running!');
+      
+      // Display specific error messages from backend
+      if (error.message) {
+        alert(error.message);
+      } else {
+        alert('Error connecting to server. Please make sure backend is running!');
+      }
     }
   };
 

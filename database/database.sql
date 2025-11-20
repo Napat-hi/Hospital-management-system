@@ -398,13 +398,6 @@ CREATE PROCEDURE sp_book_appointment (
 BEGIN
   DECLARE v_conflict INT DEFAULT 0;
 
-  IF NOT EXISTS (SELECT 1 FROM patient WHERE patient_id = p_patient_id) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid patient_id';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM doctor WHERE doctor_id = p_doctor_id) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid doctor_id';
-  END IF;
-
   SELECT COUNT(*) INTO v_conflict
   FROM appointment
   WHERE doctor_id = p_doctor_id
@@ -424,6 +417,41 @@ BEGIN
   );
 
   SET p_appointment_id = LAST_INSERT_ID();
+END$$
+
+DROP PROCEDURE IF EXISTS sp_update_appointment $$
+CREATE PROCEDURE sp_update_appointment (
+  IN p_appointment_id BIGINT,
+  IN p_patient_id     BIGINT,
+  IN p_doctor_id      INT,
+  IN p_date           DATE,
+  IN p_time           TIME,
+  IN p_reason         VARCHAR(255)
+)
+BEGIN
+  DECLARE v_conflict INT DEFAULT 0;
+
+  -- Check for scheduling conflict (exclude current appointment)
+  SELECT COUNT(*) INTO v_conflict
+  FROM appointment
+  WHERE doctor_id = p_doctor_id
+    AND appointment_date = p_date
+    AND TIME(appointment_time) = p_time
+    AND status IN ('SCHEDULED','RESCHEDULED')
+    AND appointment_id != p_appointment_id;
+
+  IF v_conflict > 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Doctor already booked at this time';
+  END IF;
+
+  -- Update appointment
+  UPDATE appointment
+  SET patient_id = p_patient_id,
+      doctor_id = p_doctor_id,
+      appointment_date = p_date,
+      appointment_time = TIMESTAMP(p_date, p_time),
+      reason = AES_ENCRYPT(p_reason, get_enc_key())
+  WHERE appointment_id = p_appointment_id;
 END$$
 DELIMITER ;
 
