@@ -100,6 +100,7 @@ CREATE TABLE user (
   user_id    INT AUTO_INCREMENT PRIMARY KEY,
   username   VARBINARY(80),
   password   CHAR(64) NOT NULL,
+  salt       CHAR(64) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -273,14 +274,25 @@ BEGIN
   SET NEW.reason = AES_ENCRYPT(NEW.reason, get_enc_key());
 END$$
 
--- USER (SHA-256 password hashing)
+-- USER (SHA-256 password hashing with random salt)
 DROP TRIGGER IF EXISTS trg_user_bi $$
 CREATE TRIGGER trg_user_bi
 BEFORE INSERT ON user
 FOR EACH ROW
 BEGIN
+  DECLARE random_salt CHAR(64);
+  
+  -- Generate random salt using UUID and SHA2
+  SET random_salt = SHA2(CONCAT(UUID(), RAND(), NOW(6)), 256);
+  
+  -- Encrypt username
   SET NEW.username = AES_ENCRYPT(NEW.username, get_enc_key());
-  SET NEW.password = SHA2(NEW.password,256);
+  
+  -- Store salt
+  SET NEW.salt = random_salt;
+  
+  -- Hash password with salt: SHA2(password + salt)
+  SET NEW.password = SHA2(CONCAT(NEW.password, random_salt), 256);
 END$$
 DELIMITER ;
 

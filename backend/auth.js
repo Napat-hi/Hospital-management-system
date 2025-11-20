@@ -29,11 +29,12 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    // Query user table with decrypted username
+    // Query user table with decrypted username and salt
     const [userRows] = await pool.query(
       `SELECT user_id, 
               CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) AS username, 
-              password
+              password,
+              salt
        FROM user
        WHERE CAST(AES_DECRYPT(username, (SELECT enc_key FROM secret_config WHERE id=1)) AS CHAR(80)) = ?`,
       [username]
@@ -41,7 +42,10 @@ router.post("/login", async (req, res) => {
 
     if (userRows.length > 0) {
       const user = userRows[0];
-      if (hashPassword(password) !== user.password) {
+      // Hash the provided password with the stored salt
+      const hashedPasswordWithSalt = crypto.createHash("sha256").update(password + user.salt).digest("hex");
+      
+      if (hashedPasswordWithSalt !== user.password) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
 
