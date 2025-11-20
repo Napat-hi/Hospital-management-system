@@ -12,16 +12,16 @@ INSERT INTO secret_config VALUES (
 -- PATIENT
 -- =========================================================
 INSERT INTO patient (first_name, last_name, dob, sex, email, phone, address, emergency_contact) VALUES
-('Ananda', 'Chaiyasit', '1985-03-12', 'M', 'ananda85@gmail.com', '0812345671', 'Bangkok, Thailand', '0819991111'),
-('Kanya', 'Thongdee', '1990-07-08', 'F', 'kanya.td@gmail.com', '0898765432', 'Chiang Mai, Thailand', '0861122334'),
-('Somchai', 'Rattanakorn', '1978-01-24', 'M', 'somchai78@yahoo.com', '0812123434', 'Khon Kaen, Thailand', '0813434334'),
-('Mayuree', 'Nimman', '1995-09-17', 'F', 'mayuree95@gmail.com', '0823332221', 'Phuket, Thailand', '0813334444'),
-('Arthit', 'Sirisuk', '2000-11-05', 'M', 'arthit2000@outlook.com', '0835678890', 'Bangkok, Thailand', '0812223344'),
-('Benjamas', 'Chan', '1988-04-28', 'F', 'benjamas88@gmail.com', '0859080706', 'Rayong, Thailand', '0853334567'),
-('Preecha', 'Sukjai', '1975-12-10', 'M', 'preecha75@gmail.com', '0892223334', 'Chiang Rai, Thailand', '0845556667'),
-('Thanya', 'Wong', '1998-02-15', 'F', 'thanya98@gmail.com', '0821112244', 'Nonthaburi, Thailand', '0833335555'),
-('Surasak', 'Boonyasiri', '1982-06-06', 'M', 'surasak82@gmail.com', '0815556661', 'Udon Thani, Thailand', '0867778888'),
-('Manita', 'Yodrak', '2001-10-25', 'F', 'manita01@gmail.com', '0844445555', 'Bangkok, Thailand', '0811112222');
+('Ananda', 'Chaiyasit', '1985-03-12', 'Male', 'ananda85@gmail.com', '0812345671', 'Bangkok, Thailand', '0819991111'),
+('Kanya', 'Thongdee', '1990-07-08', 'Female', 'kanya.td@gmail.com', '0898765432', 'Chiang Mai, Thailand', '0861122334'),
+('Somchai', 'Rattanakorn', '1978-01-24', 'Male', 'somchai78@yahoo.com', '0812123434', 'Khon Kaen, Thailand', '0813434334'),
+('Mayuree', 'Nimman', '1995-09-17', 'Female', 'mayuree95@gmail.com', '0823332221', 'Phuket, Thailand', '0813334444'),
+('Arthit', 'Sirisuk', '2000-11-05', 'Male', 'arthit2000@outlook.com', '0835678890', 'Bangkok, Thailand', '0812223344'),
+('Benjamas', 'Chan', '1988-04-28', 'Female', 'benjamas88@gmail.com', '0859080706', 'Rayong, Thailand', '0853334567'),
+('Preecha', 'Sukjai', '1975-12-10', 'Male', 'preecha75@gmail.com', '0892223334', 'Chiang Rai, Thailand', '0845556667'),
+('Thanya', 'Wong', '1998-02-15', 'Female', 'thanya98@gmail.com', '0821112244', 'Nonthaburi, Thailand', '0833335555'),
+('Surasak', 'Boonyasiri', '1982-06-06', 'Male', 'surasak82@gmail.com', '0815556661', 'Udon Thani, Thailand', '0867778888'),
+('Manita', 'Yodrak', '2001-10-25', 'Female', 'manita01@gmail.com', '0844445555', 'Bangkok, Thailand', '0811112222');
 
 -- =========================================================
 -- USER (Must be inserted first due to foreign key constraints)
