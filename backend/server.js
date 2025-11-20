@@ -531,31 +531,46 @@ app.put('/api/patients/:id', async (req, res) => {
   }
 });
 
-// 9. POST - Create new appointment (staff creates appointments)
+// 9. POST - Create new appointment (staff creates appointments using stored procedure)
 app.post('/api/appointments', async (req, res) => {
-      console.log(req);
   try {
     const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
+    
     // Validation
     if (!patient_id || !doctor_id || !appointment_date || !appointment_time) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Combine date and time into TIMESTAMP format
-    const datetime = `${appointment_date} ${appointment_time}`;
+    // Convert time to TIME format (HH:MM:SS)
+    const timeFormatted = appointment_time.includes(':') ? appointment_time : `${appointment_time}:00`;
     
-    // Note: reason is encrypted by trg_appointment_bi trigger automatically
+    // Call stored procedure sp_book_appointment
+    // Parameters: patient_id, doctor_id, date, time, reason, OUT appointment_id
     const [result] = await dbStaff.query(`
-      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at)
-      VALUES (?, ?, ?, ?, ?, 'SCHEDULED', NOW())
-    `, [patient_id, doctor_id, appointment_date, datetime, reason || '']);
+      CALL sp_book_appointment(?, ?, ?, ?, ?, @new_appointment_id)
+    `, [patient_id, doctor_id, appointment_date, timeFormatted, reason || '']);
+    
+    // Get the OUT parameter (new appointment ID)
+    const [[{ appointment_id }]] = await dbStaff.query('SELECT @new_appointment_id as appointment_id');
     
     res.status(201).json({
       message: 'Appointment created successfully',
-      appointmentId: result.insertId
+      appointmentId: appointment_id
     });
   } catch (error) {
     console.error('Error creating appointment:', error);
+    
+    // Handle specific stored procedure errors
+    if (error.message.includes('Invalid patient_id')) {
+      return res.status(400).json({ error: 'Invalid patient ID' });
+    }
+    if (error.message.includes('Invalid doctor_id')) {
+      return res.status(400).json({ error: 'Invalid doctor ID' });
+    }
+    if (error.message.includes('Doctor already booked')) {
+      return res.status(409).json({ error: 'Doctor is already booked at this time' });
+    }
+    
     res.status(500).json({ error: 'Failed to create appointment' });
   }
 });
