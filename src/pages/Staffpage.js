@@ -578,7 +578,8 @@ export default function Staffpage() {
         dob: selectedPatient.dob,
         address: selectedPatient.address,
         phone: selectedPatient.phone || "",
-        email: selectedPatient.email || ""
+        email: selectedPatient.email || "",
+        emergency_contact: selectedPatient.emergency_contact || ""
       });
       setShowEditPatientForm(true);
     }
@@ -1278,7 +1279,7 @@ export default function Staffpage() {
                               name="emergency_contact"
                               value={patientFormData.emergency_contact}
                               onChange={handlePatientInputChange}
-                              placeholder="Contact name and phone number"
+                              placeholder="phone number"
                             />
                           </div>
                           <div className="col-12">
@@ -1375,6 +1376,7 @@ export default function Staffpage() {
                           onClick={() => {
                             setSelectedPatient(null);
                             setShowPatientResults(true);
+                            setShowEditPatientForm(false);
                           }}
                         >
                           ← Back to Search
@@ -1573,7 +1575,7 @@ export default function Staffpage() {
                               name="emergency_contact"
                               value={editPatientFormData.emergency_contact}
                               onChange={handleEditPatientInputChange}
-                              placeholder="Contact name and phone number"
+                              placeholder="phone number"
                             />
                           </div>
                           <div className="col-12">
