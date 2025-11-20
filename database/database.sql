@@ -381,35 +381,6 @@ SELECT
   created_at
 FROM appointment;
 
-/* =========================================================
-   BUSINESS TRIGGER
-   ========================================================= */
-DELIMITER $$
-DROP TRIGGER IF EXISTS trg_payment_after_insert $$
-CREATE TRIGGER trg_payment_after_insert
-AFTER INSERT ON payment
-FOR EACH ROW
-BEGIN
-  DECLARE v_total DECIMAL(12,2);
-  DECLARE v_paid  DECIMAL(12,2);
-
-  SELECT CAST(AES_DECRYPT(total, get_enc_key()) AS DECIMAL(12,2))
-    INTO v_total FROM bill WHERE bill_id = NEW.bill_id FOR UPDATE;
-
-  SELECT COALESCE(SUM(CAST(AES_DECRYPT(amount, get_enc_key()) AS DECIMAL(12,2))),0)
-    INTO v_paid FROM payment WHERE bill_id = NEW.bill_id;
-
-  IF v_paid > v_total THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Payment exceeds bill total';
-  END IF;
-
-  IF v_paid >= v_total THEN
-    UPDATE bill SET status = 'PAID' WHERE bill_id = NEW.bill_id;
-  ELSE
-    UPDATE bill SET status = 'OPEN' WHERE bill_id = NEW.bill_id AND status <> 'OPEN';
-  END IF;
-END$$
-DELIMITER ;
 
 /* =========================================================
    STORED PROCEDURE
