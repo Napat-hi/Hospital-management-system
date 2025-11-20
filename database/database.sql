@@ -429,7 +429,15 @@ CREATE PROCEDURE sp_update_appointment (
   IN p_reason         VARCHAR(255)
 )
 BEGIN
+  DECLARE v_appointment_exists INT DEFAULT 0;
+  DECLARE v_patient_exists INT DEFAULT 0;
+  DECLARE v_doctor_exists INT DEFAULT 0;
   DECLARE v_conflict INT DEFAULT 0;
+
+  -- Check if appointment exists
+  SELECT COUNT(*) INTO v_appointment_exists
+  FROM appointment
+  WHERE appointment_id = p_appointment_id;
 
   -- Check for scheduling conflict (exclude current appointment)
   SELECT COUNT(*) INTO v_conflict
