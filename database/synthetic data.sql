@@ -33,14 +33,14 @@ INSERT INTO user (username, password) VALUES
 ('siriwan', 'siriwan.boo'),
 ('thanakorn', 'thanakorn.mee'),
 ('jirapat', 'jirapat.sun'),
-('kanchana', 'kanchana.sri'),
+('po', 'po.hir'),
 
 -- Staff (IDs 6-10)
 ('nattapong', 'nattapong.wil'),
 ('chutima', 'chutima.kor'),
 ('wirat', 'wirat.tha'),
 ('somsri', 'somsri.kae'),
-('phudit', 'phudit.sae'),
+('purin', 'purin.kan'),
 
 -- Admin (ID 11)
 ('admin', 'admin');
