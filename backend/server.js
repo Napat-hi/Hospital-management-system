@@ -532,30 +532,54 @@ app.put('/api/patients/:id', async (req, res) => {
 });
 
 // 9. POST - Create new appointment (staff creates appointments)
+// Uses sp_book_appointment stored procedure for validation and conflict checking
 app.post('/api/appointments', async (req, res) => {
-      console.log(req);
   try {
     const { patient_id, doctor_id, appointment_date, appointment_time, reason } = req.body;
+    
     // Validation
     if (!patient_id || !doctor_id || !appointment_date || !appointment_time) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    // Combine date and time into TIMESTAMP format
-    const datetime = `${appointment_date} ${appointment_time}`;
+    // Ensure time format is HH:MM:SS
+    let timeOnly = appointment_time.split(' ')[0]; // Remove AM/PM if present
+    // Add seconds if not present (e.g., "20:00" becomes "20:00:00")
+    if (timeOnly.split(':').length === 2) {
+      timeOnly = timeOnly + ':00';
+    }
     
-    // Note: reason is encrypted by trg_appointment_bi trigger automatically
+    console.log('Booking appointment:', { patient_id, doctor_id, appointment_date, timeOnly });
+    
+    // Call stored procedure sp_book_appointment
+    // This procedure validates patient_id, doctor_id, checks for conflicts, and encrypts reason
     const [result] = await dbStaff.query(`
-      INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at)
-      VALUES (?, ?, ?, ?, ?, 'SCHEDULED', NOW())
-    `, [patient_id, doctor_id, appointment_date, datetime, reason || '']);
+      CALL sp_book_appointment(?, ?, ?, ?, ?, @appointment_id)
+    `, [patient_id, doctor_id, appointment_date, timeOnly, reason || '']);
+    
+    // Get the output parameter
+    const [output] = await dbStaff.query('SELECT @appointment_id as appointmentId');
     
     res.status(201).json({
       message: 'Appointment created successfully',
-      appointmentId: result.insertId
+      appointmentId: output[0].appointmentId
     });
   } catch (error) {
     console.error('Error creating appointment:', error);
+    
+    // Check for specific error messages from stored procedure
+    if (error.sqlMessage) {
+      if (error.sqlMessage.includes('Invalid patient_id')) {
+        return res.status(400).json({ error: 'Invalid patient ID' });
+      }
+      if (error.sqlMessage.includes('Invalid doctor_id')) {
+        return res.status(400).json({ error: 'Invalid doctor ID' });
+      }
+      if (error.sqlMessage.includes('Doctor already booked')) {
+        return res.status(409).json({ error: 'This time slot is already booked for this doctor' });
+      }
+    }
+    
     res.status(500).json({ error: 'Failed to create appointment' });
   }
 });

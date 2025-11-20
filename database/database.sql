@@ -383,8 +383,35 @@ FROM appointment;
 
 
 /* =========================================================
-   STORED PROCEDURE
+   STORED PROCEDURE - Book Appointment with Validation
    ========================================================= */
+/*
+ * sp_book_appointment - Creates a new appointment with validation
+ * 
+ * This procedure performs the following:
+ * 1. Validates that patient_id exists
+ * 2. Validates that doctor_id exists
+ * 3. Checks for scheduling conflicts (same doctor, date, and time)
+ * 4. Automatically encrypts the reason field
+ * 5. Returns the new appointment_id
+ * 
+ * Parameters:
+ *   IN  p_patient_id  - Patient's ID
+ *   IN  p_doctor_id   - Doctor's ID
+ *   IN  p_date        - Appointment date (DATE format)
+ *   IN  p_time        - Appointment time (TIME format, e.g., '14:30:00')
+ *   IN  p_reason      - Reason for visit (will be encrypted)
+ *   OUT p_appointment_id - Returns the newly created appointment ID
+ * 
+ * Error Handling:
+ *   - SQLSTATE '45000' with 'Invalid patient_id' if patient doesn't exist
+ *   - SQLSTATE '45000' with 'Invalid doctor_id' if doctor doesn't exist
+ *   - SQLSTATE '45000' with 'Doctor already booked' if time slot is taken
+ * 
+ * Usage Example:
+ *   CALL sp_book_appointment(1, 5, '2025-11-25', '14:30:00', 'Regular checkup', @new_id);
+ *   SELECT @new_id;
+ */
 DELIMITER $$
 DROP PROCEDURE IF EXISTS sp_book_appointment $$
 CREATE PROCEDURE sp_book_appointment (
@@ -398,24 +425,31 @@ CREATE PROCEDURE sp_book_appointment (
 BEGIN
   DECLARE v_conflict INT DEFAULT 0;
 
+  -- Validate patient exists
   IF NOT EXISTS (SELECT 1 FROM patient WHERE patient_id = p_patient_id) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid patient_id';
   END IF;
+  
+  -- Validate doctor exists
   IF NOT EXISTS (SELECT 1 FROM doctor WHERE doctor_id = p_doctor_id) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid doctor_id';
   END IF;
 
+  -- Check for scheduling conflicts (same doctor, date, and time)
+  -- This prevents duplicate bookings at the exact same time slot
+  -- Only check for active appointments (exclude CANCELLED and NO_SHOW)
   SELECT COUNT(*) INTO v_conflict
   FROM appointment
   WHERE doctor_id = p_doctor_id
-    AND appointment_date = p_date
+    AND DATE(appointment_date) = p_date
     AND TIME(appointment_time) = p_time
-    AND status IN ('SCHEDULED','RESCHEDULED');
+    AND status NOT IN ('CANCELLED', 'NO_SHOW');
 
   IF v_conflict > 0 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Doctor already booked';
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Doctor already booked at this time';
   END IF;
 
+  -- Insert new appointment with encrypted reason
   INSERT INTO appointment (
     patient_id, doctor_id, appointment_date, appointment_time, reason, status, created_at
   ) VALUES (
@@ -423,6 +457,7 @@ BEGIN
     AES_ENCRYPT(p_reason, get_enc_key()), 'SCHEDULED', NOW()
   );
 
+  -- Return the new appointment ID
   SET p_appointment_id = LAST_INSERT_ID();
 END$$
 DELIMITER ;
