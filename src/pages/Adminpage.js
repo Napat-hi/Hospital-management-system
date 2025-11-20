@@ -56,6 +56,7 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../App.css";
+import { adminAPI } from "../api/adminapi";
 
 export default function Adminpage() {
   const location = useLocation();
@@ -73,15 +74,11 @@ const [listData, setListData] = useState([]);
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5001/api/users');
-      if (response.ok) {
-        const users = await response.json();
-        setListData(users);
-      } else {
-        console.error('Failed to fetch users');
-      }
+      const users = await adminAPI.getUsers();
+      setListData(users);
     } catch (error) {
       console.error('Error fetching users:', error);
+      alert('Failed to fetch users. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -349,47 +346,33 @@ useEffect(() => {
     console.log(`Generated credentials - Username: ${username}, Password: ${password}`);
 
     try {
-      // TODO: Replace 'http://your-backend-url/api/users' with actual API endpoint
-      const response = await fetch('http://localhost:5001/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData)
+      const result = await adminAPI.createUser(userData);
+      alert('User created successfully!');
+      console.log('Server response:', result);
+
+      // Reset form after successful creation
+      setFormData({
+        first_name: "",
+        last_name: "",
+        department: "",
+        specialization: "",
+        phone: "",
+        email: "",
+        position: ""
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert('User created successfully!');
-        console.log('Server response:', result);
-
-        // Reset form after successful creation
-        setFormData({
-          first_name: "",
-          last_name: "",
-          department: "",
-          specialization: "",
-          phone: "",
-          email: "",
-          position: ""
-        });
-        setFormErrors({
-          first_name: "",
-          last_name: "",
-          department: "",
-          specialization: "",
-          phone: "",
-          email: "",
-          position: ""
-        });
-        setRole("");
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to create user: ${errorData.message || 'Unknown error'}`);
-      }
+      setFormErrors({
+        first_name: "",
+        last_name: "",
+        department: "",
+        specialization: "",
+        phone: "",
+        email: "",
+        position: ""
+      });
+      setRole("");
     } catch (error) {
-      console.error('Error connecting to server:', error);
-      alert('Error connecting to server. Please try again later.');
+      console.error('Error creating user:', error);
+      alert(`Failed to create user: ${error.message}`);
     }
   };
 
@@ -442,28 +425,16 @@ useEffect(() => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5001/api/users/${user.id}/disable`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role: user.role })
-      });
-
-      if (response.ok) {
-        alert("User deleted successfully!");
-        await fetchUsers();
-        // Close edit form if the deleted user was being edited
-        if (showEditForm && editFormData.id === user.id) {
-          setShowEditForm(false);
-        }
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to delete user: ${errorData.message || 'Unknown error'}`);
+      await adminAPI.deleteUser(user.id, user.role);
+      alert("User deleted successfully!");
+      await fetchUsers();
+      // Close edit form if the deleted user was being edited
+      if (showEditForm && editFormData.id === user.id) {
+        setShowEditForm(false);
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert(`Failed to delete user: ${error.message}`);
     }
   };
 
@@ -489,29 +460,16 @@ useEffect(() => {
     console.log("Updating user:", updatedData);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/users/${editFormData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData)
-      });
+      const result = await adminAPI.updateUser(editFormData.id, updatedData);
+      alert("User updated successfully!");
+      await fetchUsers();
+      console.log('Server response:', result);
 
-      if (response.ok) {
-        const result = await response.json();
-        alert("User updated successfully!");
-        await fetchUsers();
-        console.log('Server response:', result);
-
-        // Reset form state after successful update
-        handleCancelEdit();
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to update user: ${errorData.message || 'Unknown error'}`);
-      }
+      // Reset form state after successful update
+      handleCancelEdit();
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Error connecting to server. Please try again later.');
+      alert(`Failed to update user: ${error.message}`);
     }
   };
 
