@@ -181,54 +181,28 @@ app.put('/api/users/:id', async (req, res) => {
     
     // Update based on role
     if (role === 'Doctor') {
-      // Build dynamic query to only update email/phone if provided
-      const updates = [];
-      const values = [];
-      
-      updates.push('first_name = ?', 'last_name = ?', 'department = ?', 'specialization = ?');
-      values.push(first_name, last_name, department, specialization || '');
-      
-      if (phone) {
-        updates.push('phone = AES_ENCRYPT(?, get_enc_key())');
-        values.push(phone);
-      }
-      if (email) {
-        updates.push('email = AES_ENCRYPT(?, get_enc_key())');
-        values.push(email);
-      }
-      
-      values.push(id);
-      
       await dbAdmin.query(`
         UPDATE doctor 
-        SET ${updates.join(', ')}
+        SET first_name = ?,
+            last_name = ?,
+            department = ?,
+            specialization = ?,
+            phone = AES_ENCRYPT(?, get_enc_key()),
+            email = AES_ENCRYPT(?, get_enc_key())
         WHERE doctor_id = ?
-      `, values);
+      `, [first_name, last_name, department, specialization || '', phone || '', email || '', id]);
       
     } else if (role === 'Staff') {
-      // Build dynamic query to only update email/phone if provided
-      const updates = [];
-      const values = [];
-      
-      updates.push('first_name = ?', 'last_name = ?', 'department = ?', 'position = ?');
-      values.push(first_name, last_name, department, position || '');
-      
-      if (phone) {
-        updates.push('phone = AES_ENCRYPT(?, get_enc_key())');
-        values.push(phone);
-      }
-      if (email) {
-        updates.push('email = AES_ENCRYPT(?, get_enc_key())');
-        values.push(email);
-      }
-      
-      values.push(id);
-      
       await dbAdmin.query(`
         UPDATE staff 
-        SET ${updates.join(', ')}
+        SET first_name = ?,
+            last_name = ?,
+            department = ?,
+            position = ?,
+            phone = AES_ENCRYPT(?, get_enc_key()),
+            email = AES_ENCRYPT(?, get_enc_key())
         WHERE staff_id = ?
-      `, values);
+      `, [first_name, last_name, department, position || '', phone || '', email || '', id]);
     }
     
     res.json({
@@ -831,8 +805,23 @@ app.put('/api/bills/:id', async (req, res) => {
     
     values.push(id);
     
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    // Safely construct query with whitelisted fields only
+    const allowedFields = ['consultation_fee', 'medication_cost', 'lab_tests_cost', 'total', 'status'];
+    const validatedFields = updateFields.filter(field => {
+      const fieldName = field.split(' ')[0].split('=')[0].trim();
+      return allowedFields.includes(fieldName);
+    });
+    
+    if (validatedFields.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    
     const [result] = await dbStaff.query(
-      `UPDATE bill SET ${updateFields.join(', ')} WHERE bill_id = ?`,
+      `UPDATE bill SET ${validatedFields.join(', ')} WHERE bill_id = ?`,
       values
     );
     
