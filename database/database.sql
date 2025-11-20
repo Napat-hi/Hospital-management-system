@@ -483,10 +483,9 @@ CREATE USER 'staff_user'@'%' IDENTIFIED BY 'StaffPassword123!';
    Matrix:
    Entity      | Admin | Doctor | Staff
    ------------|-------|--------|-------
-   Admin       | —     | —      | —
-   Doctor      | R     | CRUD   | —
-   Staff       | CRU   | —      | —
-   Patient     | —     | R      | CRUD
+   Patient     | —     | R      | CRU
+   Doctor      | CRUD  | —      | R
+   Staff       | CRUD  | —      | R
    Appointment | —     | RU     | CRUD
    Bill        | —     | —      | CRUD
    User        | CRUD  | —      | —
@@ -496,15 +495,16 @@ CREATE USER 'staff_user'@'%' IDENTIFIED BY 'StaffPassword123!';
    ADMIN USER
    ---------------------------------------------------------- */
 
--- Doctor table → R (Read only)
-GRANT SELECT ON HMS.v_doctor_decrypted TO 'admin_user'@'%';
+-- Patient → no access
 
--- Staff table → CRU (Create, Read, Update)
-GRANT SELECT, INSERT, UPDATE ON HMS.v_staff_decrypted TO 'admin_user'@'%';
+-- Doctor table → CRUD (Create, Read, Update, Delete)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_doctor_decrypted TO 'admin_user'@'%';
 
--- Patient → no privileges
--- Appointment → no privileges
--- Bill → no privileges
+-- Staff table → CRUD (Create, Read, Update, Delete)
+GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_staff_decrypted TO 'admin_user'@'%';
+
+-- Appointment → no access
+-- Bill → no access
 
 -- User table → CRUD (Create, Read, Update, Delete)
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%';
@@ -514,13 +514,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_user_decrypted TO 'admin_user'@'%'
    DOCTOR USER
    ---------------------------------------------------------- */
 
--- Doctor table → CRUD (Create, Read, Update, Delete)
-GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_doctor_decrypted TO 'doctor_user'@'%';
-
--- Staff table → no access
-
 -- Patient → R (Read only)
 GRANT SELECT ON HMS.v_patient_decrypted TO 'doctor_user'@'%';
+
+-- Doctor table → no access
+
+-- Staff table → no access
 
 -- Appointment table → RU (Read, Update)
 GRANT SELECT, UPDATE ON HMS.v_appointment_decrypted TO 'doctor_user'@'%';
@@ -533,12 +532,14 @@ GRANT SELECT, UPDATE ON HMS.v_appointment_decrypted TO 'doctor_user'@'%';
    STAFF USER
    ---------------------------------------------------------- */
 
--- Doctor table → no access
+-- Patient → CRU (Create, Read, Update)
+GRANT SELECT, INSERT, UPDATE ON HMS.v_patient_decrypted TO 'staff_user'@'%';
 
--- Staff table → no access
+-- Doctor table → R (Read only)
+GRANT SELECT ON HMS.v_doctor_decrypted TO 'staff_user'@'%';
 
--- Patient → CRUD (Create, Read, Update, Delete)
-GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_patient_decrypted TO 'staff_user'@'%';
+-- Staff table → R (Read only)
+GRANT SELECT ON HMS.v_staff_decrypted TO 'staff_user'@'%';
 
 -- Appointment table → CRUD (Create, Read, Update, Delete)
 GRANT SELECT, INSERT, UPDATE, DELETE ON HMS.v_appointment_decrypted TO 'staff_user'@'%';
