@@ -93,5 +93,3 @@ INSERT INTO appointment (patient_id, doctor_id, appointment_date, appointment_ti
 (3, 3, '2025-11-06', '2025-11-06 13:00:00', 'Child vaccination', 'COMPLETED'),
 (4, 4, '2025-11-05', '2025-11-05 15:00:00', 'Knee pain follow-up', 'COMPLETED'),
 (5, 5, '2025-11-09', '2025-11-09 08:30:00', 'General health screening', 'SCHEDULED');
-
-
