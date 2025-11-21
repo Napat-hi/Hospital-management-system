@@ -1,71 +1,297 @@
-# Getting Started with Create React App
+# Hospital Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> **Note**: This README was auto-generated.
 
-## Available Scripts
+A comprehensive hospital management system built with React and Node.js, featuring role-based access control, end-to-end encryption, and secure data management.
 
-In the project directory, you can run:
+## 🏥 Overview
 
-### `npm start`
+This Hospital Management System (HMS) provides a complete solution for managing hospital operations including patient records, appointments, billing, and staff management. The system implements enterprise-grade security with AES-256 encryption for sensitive data and SHA-256 hashing for passwords and identifiers.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## ✨ Key Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Security
+- **AES-256 Encryption**: All sensitive data (patient PII, contact info, financial data, medical reasons) encrypted at rest
+- **SHA-256 Password Hashing**: Secure password storage with unique salts per user
+- **Hash-Based Indexing**: Fast lookups without decrypting data using SHA-256 hashes
+- **Role-Based Access Control (RBAC)**: Three user roles with specific permissions
 
-### `npm test`
+### User Roles & Capabilities
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+#### 👨‍⚕️ Doctor
+- View patient information (read-only)
+- View appointments
+- Mark appointments as completed/uncompleted
+- Access decrypted patient data through secure views
 
-### `npm run build`
+#### 👩‍💼 Staff
+- Manage patient records (create, read, update)
+- Manage appointments (full CRUD)
+- Generate and manage bills
+- Process payments
+- View doctor and staff information (read-only)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+#### 👨‍💼 Admin
+- Manage doctor accounts (full CRUD)
+- Manage staff accounts (full CRUD)
+- Manage user credentials (full CRUD)
+- Cannot access patient data directly
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Core Functionalities
+- **Patient Management**: Comprehensive patient records with encrypted personal information
+- **Appointment Scheduling**: Conflict detection and validation via stored procedures
+- **Billing System**: Automated bill generation with itemized costs
+- **Payment Processing**: Multiple payment methods (Cash, Card, Transfer)
+- **Real-time Search**: Fast patient and appointment lookup using hash-based indexing
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🛠️ Technology Stack
 
-### `npm run eject`
+### Frontend
+- **React 18**: Modern UI with hooks and functional components
+- **React Router**: Client-side routing with protected routes
+- **Bootstrap 5**: Responsive design and UI components
+- **Axios**: HTTP client for API requests
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Backend
+- **Node.js**: Runtime environment
+- **Express.js**: RESTful API server
+- **MySQL 8.0+**: Database with advanced encryption features
+- **mysql2**: Database driver with connection pooling
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Security Implementation
+- **Encryption**: AES-256-CBC via MySQL's `AES_ENCRYPT`/`AES_DECRYPT`
+- **Hashing**: SHA-256 via MySQL's `SHA2` function
+- **Database Views**: Decrypted views for authorized access
+- **Triggers**: Automatic encryption on INSERT operations
+- **Stored Procedures**: Business logic with validation and conflict detection
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 📋 Prerequisites
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- **Node.js**: v14.0.0 or higher
+- **MySQL**: 8.0 or higher
+- **npm**: 6.0.0 or higher
 
-## Learn More
+## 🚀 Installation & Setup
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Napat-hi/Hospital-management-system.git
+cd Hospital-management-system
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 2. Install Frontend Dependencies
+```bash
+npm install
+```
 
-### Code Splitting
+### 3. Install Backend Dependencies
+```bash
+cd backend
+npm install
+cd ..
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### 4. Database Setup
+```bash
+# Login to MySQL
+mysql -u root -p
 
-### Analyzing the Bundle Size
+# Run the database script
+source database/database.sql
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The database script will:
+- Create the HMS database
+- Create 8 tables (patient, doctor, staff, user, appointment, bill, payment, secret_config)
+- Set up encryption keys
+- Create 7 decrypted views
+- Create 6 encryption triggers
+- Create 2 stored procedures
+- Create 3 database users with role-based privileges
+- Set up foreign key relationships
 
-### Making a Progressive Web App
+### 5. Configure Environment Variables
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Create a `.env` file in the `backend` directory:
+```env
+PORT=5001
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=HMS
+```
 
-### Advanced Configuration
+### 6. Start the Application
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+**Terminal 1 - Backend Server:**
+```bash
+cd backend
+npm start
+```
+Backend will run on `http://localhost:5001`
 
-### Deployment
+**Terminal 2 - Frontend Application:**
+```bash
+npm start
+```
+Frontend will run on `http://localhost:3000`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 👤 Default User Credentials
 
-### `npm run build` fails to minify
+### Database Users (for direct DB access)
+```
+Admin:  admin_user / AdminPassword123!
+Doctor: doctor_user / DoctorPassword123!
+Staff:  staff_user / StaffPassword123!
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# Hospital-management-system
+### Application Users (for web login)
+Create users through the Admin panel or directly in the `user` table.
+
+## 📁 Project Structure
+
+```
+Hospital-management-system/
+├── backend/
+│   ├── server.js              # Main Express server
+│   ├── auth.js                # Authentication routes
+│   ├── user.js                # User management routes
+│   └── config/
+│       ├── databaseadmin.js   # Admin DB connection
+│       ├── databasedoctor.js  # Doctor DB connection
+│       └── databasestaff.js   # Staff DB connection
+├── database/
+│   └── database.sql           # Complete DB schema & setup
+├── src/
+│   ├── pages/
+│   │   ├── Home.js           # Login page
+│   │   ├── Adminpage.js      # Admin dashboard
+│   │   ├── Doctorpage.js     # Doctor dashboard
+│   │   └── Staffpage.js      # Staff dashboard
+│   ├── components/
+│   │   ├── Header.js         # Navigation header
+│   │   └── ProtectedRoute.js # Route protection
+│   └── api/
+│       ├── config.js         # API base URL
+│       ├── fetch.js          # Axios instance
+│       └── doctorAPI.js      # Doctor API calls
+└── public/
+```
+
+## 🔐 Security Features
+
+### Data Encryption
+All sensitive fields are automatically encrypted before storage:
+- **Patient**: First name, last name, DOB, sex, email, phone, address, emergency contact
+- **Doctor/Staff**: Email, phone
+- **Bill**: Consultation fee, medication cost, lab tests cost, total
+- **Payment**: Amount
+- **Appointment**: Reason
+- **User**: Username (password is hashed, not encrypted)
+
+### Hash-Based Indexing
+Email and phone fields have corresponding hash columns:
+- `email_hash`: SHA-256 hash for fast lookups and uniqueness constraints
+- `phone_hash`: SHA-256 hash for indexed searches
+
+### Privilege Matrix
+
+| Entity      | Admin | Doctor | Staff |
+|-------------|-------|--------|-------|
+| Patient     | —     | R      | CRU   |
+| Doctor      | CRUD  | —      | R     |
+| Staff       | CRUD  | —      | R     |
+| Appointment | —     | RU     | CRUD  |
+| Bill        | —     | —      | CRUD  |
+| Payment     | —     | —      | CRUD  |
+| User        | CRUD  | —      | —     |
+
+*Legend: C=Create, R=Read, U=Update, D=Delete*
+
+## 📡 API Endpoints
+
+### Authentication
+- `POST /api/auth/login` - User login with username/password
+
+### Admin Endpoints
+- `GET /api/users` - Get all doctors and staff
+- `POST /api/users` - Create new doctor or staff
+- `PUT /api/users/:id` - Update doctor or staff
+- `PATCH /api/users/:id/disable` - Delete doctor or staff
+
+### Doctor Endpoints
+- `GET /api/patients` - Get all patients
+- `GET /api/patients/:id` - Get patient by ID
+- `GET /api/appointments` - Get all appointments
+- `PATCH /api/appointments/:id/complete` - Mark appointment complete
+- `PATCH /api/appointments/:id/uncomplete` - Unmark appointment
+
+### Staff Endpoints
+- `POST /api/patients` - Create new patient
+- `PUT /api/patients/:id` - Update patient
+- `GET /api/patients/search` - Search patients
+- `POST /api/appointments` - Create appointment
+- `PUT /api/appointments/:id` - Update appointment
+- `DELETE /api/appointments/:id` - Delete appointment
+- `GET /api/doctors` - Get all doctors
+- `POST /api/bills` - Generate bill
+- `GET /api/bills` - Get all bills
+- `GET /api/bills/:id` - Get bill by ID
+- `PUT /api/bills/:id` - Update bill
+- `DELETE /api/bills/:id` - Delete bill
+
+## 🗃️ Database Schema
+
+### Key Tables
+- **patient**: Encrypted patient records
+- **doctor**: Doctor information with encrypted contact details
+- **staff**: Staff information with encrypted contact details
+- **user**: User credentials with hashed passwords
+- **appointment**: Appointment scheduling with encrypted reasons
+- **bill**: Billing information with encrypted amounts
+- **payment**: Payment records with encrypted amounts
+- **secret_config**: Encryption key storage
+
+### Stored Procedures
+- `sp_book_appointment`: Create appointment with conflict detection
+- `sp_update_appointment`: Update appointment with validation
+
+### Triggers (BEFORE INSERT)
+- `trg_patient_bi`: Encrypts patient data
+- `trg_doctor_bi`: Encrypts doctor contact info
+- `trg_staff_bi`: Encrypts staff contact info
+- `trg_bill_bi`: Encrypts billing amounts
+- `trg_payment_bi`: Encrypts payment amounts
+- `trg_appointment_bi`: Encrypts appointment reason
+- `trg_user_bi`: Hashes password with unique salt
+
+## 📖 Documentation
+
+For detailed technical documentation, see:
+- [TECHNICAL_DOCUMENTATION.md](./TECHNICAL_DOCUMENTATION.md) - Complete system architecture and database design
+- [ADMIN_BACKEND_INTEGRATION.md](./ADMIN_BACKEND_INTEGRATION.md) - Admin features integration guide
+- [DOCTOR_BACKEND_INTEGRATION.md](./DOCTOR_BACKEND_INTEGRATION.md) - Doctor features integration guide
+- [STAFF_BACKEND_INTEGRATION.md](./STAFF_BACKEND_INTEGRATION.md) - Staff features integration guide
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is part of an academic/learning exercise.
+
+## 👨‍💻 Author
+
+**Napat-hi**
+- GitHub: [@Napat-hi](https://github.com/Napat-hi)
+
+## 🙏 Acknowledgments
+
+- Built with Create React App
+- Bootstrap for UI components
+- MySQL for secure data storage with encryption

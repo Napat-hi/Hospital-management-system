@@ -1,55 +1,5 @@
 // Adminpage.jsx
-// Purin's Page
-
-/*
- * BACKEND INTEGRATION GUIDE
- * =========================
- * 
- * This file is ready for backend database integration. Here's what you need to connect:
- * 
- * 1. API ENDPOINTS TO IMPLEMENT:
- *    - POST   /api/users              - Create new user (handleCreateUser)
- *    - GET    /api/users              - Fetch all users (replace dummyUsers)
- *    - PUT    /api/users/:id          - Update user by ID (handleUpdateUser)
- *    - PATCH  /api/users/:id/disable  - Disable user by ID (handleDisableUser)
- * 
- * 2. EXPECTED DATA STRUCTURE:
- *    User Object: {
- *      id: number,
- *      first_name: string,
- *      last_name: string,
- *      username: string,        // Auto-generated: firstname.first3letters_of_lastname
- *      password: string,        // Auto-generated: DDMMYYYY from date of birth
- *      dob: string,            // Date of Birth in format "YYYY-MM-DD"
- *      email: string,
- *      phone: string,
- *      role: "Doctor" | "Staff",
- *      department: string,
- *      specialization: string (for Doctors),
- *      position: string (for Staff)
- *    }
- * 
- * 3. USERNAME & PASSWORD GENERATION:
- *    - Username format: firstname.first3letters_of_lastname
- *      Example: "John Doe" -> "john.doe"
- *    - Password format: DDMMYYYY (from date of birth)
- *      Example: DOB "2004-10-17" -> "17102004"
- *    - Both are automatically generated when creating a user
- * 
- * 4. TODO ITEMS:
- *    - Replace dummy data (dummyUsers array) with API call to fetch real users
- *    - Update all 'http://your-backend-url/api/users' endpoints with actual backend URL
- *    - Add authentication token to API requests if required
- *    - Implement proper error handling and loading states
- *    - Add search functionality to filter users on backend
- *    - Consider pagination for large user lists
- *    - Store hashed passwords in database (never store plain text!)
- * 
- * 5. FUNCTIONS READY FOR BACKEND:
- *    - handleCreateUser()   → POST new user
- *    - handleUpdateUser()   → PUT update existing user
- *    - handleDisableUser()  → PATCH disable user (soft delete)
- */
+// Admin Dashboard Page
 
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
@@ -320,7 +270,6 @@ useEffect(() => {
   };
 
   // ---- Handle form submission ----
-  // TODO: Replace with actual backend endpoint
   const handleCreateUser = async (e) => {
     e.preventDefault();
 

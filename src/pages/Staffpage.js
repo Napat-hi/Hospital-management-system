@@ -1,120 +1,6 @@
 // Staffpage.jsx
 // Staff Dashboard Page
 
-/*
- * BACKEND INTEGRATION GUIDE
- * =========================
- * 
- * This file is ready for backend database integration. All CRUD operations and data fetching
- * have placeholder functions ready to connect to your API.
- * 
- * CURRENT STATE:
- * ✅ Frontend UI complete with all forms and validation
- * ✅ State management implemented
- * ✅ Placeholder API calls ready with detailed TODO comments
- * ⏳ Needs backend API connection
- * ⏳ Needs real database
- * 
- * 1. API ENDPOINTS TO IMPLEMENT:
- *    - GET    /api/patients              - Fetch all patients
- *    - GET    /api/patients/:id          - Fetch patient by ID
- *    - POST   /api/patients              - Create new patient
- *    - PUT    /api/patients/:id          - Update patient information
- *    - GET    /api/appointments          - Fetch all appointments
- *    - POST   /api/appointments          - Create new appointment
- *    - PUT    /api/appointments/:id      - Update appointment information
- *    - DELETE /api/appointments/:id      - Delete appointment
- *    - GET    /api/appointments/completed - Fetch completed appointments
- *    - POST   /api/billing/generate      - Generate bill for completed appointment
- *    - GET    /api/doctors               - Fetch all doctors
- * 
- * 2. EXPECTED DATA STRUCTURES:
- *    Patient Object: {
- *      id: number,
- *      first_name: string,
- *      last_name: string,
- *      sex: "Male" | "Female",
- *      dob: string (format: "YYYY-MM-DD"),
- *      address: string,
- *      phone: string,
- *      email: string
- *    }
- * 
- *    Appointment Object: {
- *      id: number,
- *      patientId: number,
- *      patientName: string,
- *      doctorId: number,
- *      doctorName: string,
- *      appointmentDate: string (format: "YYYY-MM-DD"),
- *      appointmentTime: string (format: "HH:MM AM/PM"),
- *      reason: string,
- *      status: "scheduled" | "completed"
- *    }
- * 
- *    Doctor Object: {
- *      id: number,
- *      name: string,
- *      department: string
- *    }
- * 
- *    Bill Object: {
- *      id: number,
- *      appointmentId: number,
- *      patientId: number,
- *      patientName: string,
- *      doctorName: string,
- *      appointmentDate: string,
- *      consultationFee: number,
- *      medicationCost: number,
- *      labTestsCost: number,
- *      totalAmount: number,
- *      status: "unpaid" | "paid",
- *      generatedDate: string,
- *      generatedBy: string
- *    }
- * 
- * 3. TODO ITEMS:
- *    - Replace dummyPatients with API call (see useEffect example at Line ~178)
- *    - Replace dummyAppointments with API call (see useEffect example at Line ~197)
- *    - Replace dummyDoctors with API call (see useEffect example at Line ~235)
- *    - Update handleCreatePatient to use POST endpoint (Line ~330)
- *    - Update handleUpdatePatient to use PUT endpoint (Line ~366)
- *    - Update handleCreateAppointment to use POST endpoint (Line ~508)
- *    - Update handleUpdateAppointment to use PUT endpoint (Line ~540)
- *    - Update handleDeleteAppointment to use DELETE endpoint (Line ~567)
- *    - Update handleGenerateBill to use POST endpoint (Line ~598)
- *    - Add loading states during API calls
- *    - Add proper error handling with user-friendly messages
- *    - Consider pagination for large datasets
- * 
- * 4. FUNCTIONS READY FOR BACKEND:
- *    - handleCreatePatient()        → POST /api/patients
- *    - handleUpdatePatient()        → PUT /api/patients/:id
- *    - handleCreateAppointment()    → POST /api/appointments
- *    - handleUpdateAppointment()    → PUT /api/appointments/:id
- *    - handleDeleteAppointment()    → DELETE /api/appointments/:id
- *    - handleGenerateBill()         → POST /api/billing/generate
- *    - handlePatientSearch()        → Uses dummyPatients (ready for API integration)
- *    - handleViewPatient()          → Selects from dummyPatients (ready for GET /api/patients/:id)
- * 
- * 5. FEATURES IMPLEMENTED:
- *    ✅ Patient Management: Create, view, edit, search patients
- *    ✅ Appointment Management: Create, edit, delete, view appointments with search
- *    ✅ Billing System: Generate bills from completed appointments
- *    ✅ Form Validation: All required fields validated
- *    ✅ Time Format Conversion: 12-hour to 24-hour format for editing
- *    ✅ Responsive Design: Works on mobile, tablet, desktop
- *    ✅ User Confirmations: Delete confirmations to prevent accidents
- * 
- * 6. ENVIRONMENT SETUP:
- *    Create a .env file in project root:
- *    REACT_APP_API_URL=http://your-backend-url
- *    
- *    Then use in code:
- *    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
- */
-
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
@@ -586,7 +472,6 @@ export default function Staffpage() {
   };
 
   // ---- Handle create patient ----
-  // TODO: Replace with actual backend endpoint
   const handleCreatePatient = async (e) => {
     e.preventDefault();
     
@@ -634,7 +519,6 @@ export default function Staffpage() {
   };
 
   // ---- Handle update patient ----
-  // TODO: Replace with actual backend endpoint
   const handleUpdatePatient = async (e) => {
     e.preventDefault();
     
@@ -925,7 +809,6 @@ export default function Staffpage() {
   };
 
   // ---- Handle generate bill ----
-  // TODO: Replace with actual backend endpoint
   const handleGenerateBill = async (e) => {
     e.preventDefault();
     

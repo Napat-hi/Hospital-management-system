@@ -1,57 +1,6 @@
 // Doctorpage.jsx
 // Doctor's Dashboard Page
 
-/*
- * BACKEND INTEGRATION GUIDE
- * =========================
- * 
- * This file is ready for backend database integration. Here's what you need to connect:
- * 
- * 1. API ENDPOINTS TO IMPLEMENT:
- *    - GET    /api/patients              - Fetch all patients (replace dummyPatients)
- *    - GET    /api/patients/:id          - Fetch patient by ID (handleViewPatient)
- *    - GET    /api/appointments          - Fetch all appointments (replace dummyAppointments)
- *    - GET    /api/appointments/completed - Fetch completed appointments
- *    - PATCH  /api/appointments/:id/complete   - Mark appointment as complete
- *    - PATCH  /api/appointments/:id/uncomplete - Unmark appointment as complete
- * 
- * 2. EXPECTED DATA STRUCTURES:
- *    Patient Object: {
- *      id: number,
- *      first_name: string,
- *      last_name: string,
- *      sex: "Male" | "Female",
- *      dob: string (format: "YYYY-MM-DD"),
- *      address: string
- *    }
- * 
- *    Appointment Object: {
- *      id: number,
- *      patientName: string,
- *      doctorName: string,
- *      appointmentDate: string (format: "YYYY-MM-DD"),
- *      appointmentTime: string (format: "HH:MM AM/PM"),
- *      reason: string,
- *      status: "scheduled" | "completed"
- *    }
- * 
- * 3. TODO ITEMS:
- *    - Replace dummyPatients with API call: useEffect(() => { fetchPatients() }, [])
- *    - Replace dummyAppointments with API call: useEffect(() => { fetchAppointments() }, [])
- *    - Update handleCompleteAppointment to use PATCH endpoint
- *    - Update handleUnmarkComplete to use PATCH endpoint
- *    - Update handlePatientSearch to filter on backend
- *    - Add loading states during API calls
- *    - Add proper error handling with user-friendly messages
- *    - Consider pagination for large appointment/patient lists
- * 
- * 4. FUNCTIONS READY FOR BACKEND:
- *    - handleCompleteAppointment()   → PATCH /api/appointments/:id/complete
- *    - handleUnmarkComplete()        → PATCH /api/appointments/:id/uncomplete
- *    - handlePatientSearch()         → GET /api/patients?search=query
- *    - handleViewPatient()           → GET /api/patients/:id
- */
-
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import ListGroup from "react-bootstrap/ListGroup";
