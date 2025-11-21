@@ -2,6 +2,8 @@
 
 > **Note**: This README was auto-generated.
 
+> **⚠️ Prerequisites**: This project requires **Node.js** (v14.0.0 or higher) and **MySQL 8.0+**. After cloning, run `npm install` in both the root directory and the `backend` directory to install all dependencies.
+
 A comprehensive hospital management system built with React and Node.js, featuring role-based access control, end-to-end encryption, and secure data management.
 
 ## 🏥 Overview
