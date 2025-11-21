@@ -6,13 +6,17 @@ const authenticateToken = require("./middleware/authMiddleware");
 
 const router = express.Router();
 
-// MySQL pool
+
+
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "root",
-  database: "HMS",
-  port: 3306
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'admin_user',
+  password: process.env.DB_PASSWORD || 'AdminPassword123!',
+  database: process.env.DB_NAME || 'HMS',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 // Hash password utility
